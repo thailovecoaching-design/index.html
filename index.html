@@ -1468,12 +1468,20 @@ function goPage(id){
       el.style.position="static";
       el.style.flexDirection="column";
       el.style.minHeight="100vh";
-      el.style.width="100%";
+      el.style.width="480px";
+      el.style.margin="0 auto";
+      el.style.boxShadow="0 0 50px rgba(0,0,0,.12)";
       // Body en flux normal
-      document.body.style.cssText="background:#F0EDE8;overflow:auto;position:static;height:auto";
+      document.body.style.cssText="background:#E9E6E0;overflow:auto;position:static;height:auto";
       window.scrollTo(0,0);
     }
   }
+  document.querySelectorAll(".bn").forEach(function(b){
+    if(isDesktop()){
+      b.style.position="fixed";b.style.left="50%";b.style.right="auto";
+      b.style.width="480px";b.style.transform="translateX(-50%)";
+    }
+  });
   // Nav bas
   var map={"pg-h":0,"pg-f":1,"pg-swipe":1,"pg-msg":2,"pg-hearts":3,"pg-me":4};
   var navIdx=map[id];
@@ -2315,6 +2323,7 @@ const SB_URL='https://sbglyelgqceydofgllop.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c';
 
 async function qSub(){
+ try{
   var em=g('QE'), wh=g('QWH');
   if(!em)return;
   var ev=(em.value||'').trim();
@@ -2407,8 +2416,8 @@ async function qSub(){
     if(!sres.ok)console.log('Supabase a refusé',sres.status,await sres.text());
   }catch(e){console.log('Échec Supabase',e);}
 
-  if(!saved&&btn){
-    btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;
+  if(!saved){
+    if(btn){btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;}
     show('&#10060; Erreur réseau. Vérifiez votre connexion et réessayez.');
     return;
   }
@@ -2418,6 +2427,12 @@ async function qSub(){
   QD=true;
   try{bQ();}catch(e){}
   try{rFG();}catch(e){}
+ }catch(fatal){
+  console.log('qSub erreur fatale',fatal);
+  var btn2=g('QSND');
+  if(btn2){btn2.textContent='Envoyer ma candidature ✦';btn2.disabled=false;}
+  show('&#10060; Une erreur est survenue. Réessayez.');
+ }
 }
 
 
@@ -3129,9 +3144,16 @@ document.querySelectorAll(".pg").forEach(function(p){
   else{p.style.display="flex";}
 });
 if(window.innerWidth>=769){
-  document.body.style.cssText="background:#F0EDE8;overflow:auto;position:static;height:auto";
+  document.body.style.cssText="background:#E9E6E0;overflow:auto;position:static;height:auto";
   var pgh=g("pg-h");
-  if(pgh){pgh.style.flexDirection="column";pgh.style.minHeight="100vh";pgh.style.position="static";}
+  if(pgh){
+    pgh.style.flexDirection="column";pgh.style.minHeight="100vh";pgh.style.position="static";
+    pgh.style.width="480px";pgh.style.margin="0 auto";pgh.style.boxShadow="0 0 50px rgba(0,0,0,.12)";
+  }
+  document.querySelectorAll(".bn").forEach(function(b){
+    b.style.position="fixed";b.style.left="50%";b.style.right="auto";
+    b.style.width="480px";b.style.transform="translateX(-50%)";
+  });
 }
 updDsl("age");updDsl("h");updDsl("w");
 renderGrid("all");
