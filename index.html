@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -2420,17 +2419,20 @@ async function qSub(){
   }catch(e){console.log('Échec Supabase',e);}
 
   if(!saved){
+    clearTimeout(safety);
     if(btn){btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;}
     show('&#10060; Erreur réseau. Vérifiez votre connexion et réessayez.');
     return;
   }
 
+  clearTimeout(safety);
   U={name:QA.name||'',city:QA.ville||QA.city||'',bio:QA.desc||'',gender:QA.g||'',email:ev,status:'pending'};
   try{updNav();}catch(e){}
   QD=true;
   try{bQ();}catch(e){}
   try{rFG();}catch(e){}
  }catch(fatal){
+  clearTimeout(safety);
   console.log('qSub erreur fatale',fatal);
   var btn2=g('QSND');
   if(btn2){btn2.textContent='Envoyer ma candidature ✦';btn2.disabled=false;}
