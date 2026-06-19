@@ -946,8 +946,8 @@ h2 em{font-style:italic;color:var(--g)}
 /* ── DESKTOP: cadre centré, source unique de vérité ── */
 @media(min-width:769px){
   body{background:#E9E6E0 !important;overflow:auto !important;height:auto !important}
-  .pg.on{position:static !important;width:680px !important;margin:0 auto !important;box-shadow:0 0 50px rgba(0,0,0,.12) !important;min-height:100vh}
-  .bn{position:fixed !important;left:50% !important;right:auto !important;width:680px !important;transform:translateX(-50%) !important}
+  .pg.on{position:static !important;width:780px !important;margin:0 auto !important;box-shadow:0 0 50px rgba(0,0,0,.12) !important;min-height:100vh;overflow-x:hidden !important}
+  .bn{position:fixed !important;left:50% !important;right:auto !important;width:780px !important;transform:translateX(-50%) !important}
 }
 </style>
 </head>
@@ -1006,11 +1006,11 @@ h2 em{font-style:italic;color:var(--g)}
         </div>
         <div style="background:linear-gradient(135deg,var(--nv),#243156);border-radius:16px;padding:18px;color:#fff">
           <div style="font-family:var(--serif);font-size:1.4rem;margin-bottom:12px;text-align:center">Pourquoi <em style="color:var(--gl)">LoveSiam</em>&nbsp;?</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div style="display:flex;align-items:center;gap:7px;font-size:.85rem;color:rgba(255,255,255,.9)"><span style="color:var(--gl);font-weight:700">&#10003;</span>Profils v&eacute;rifi&eacute;s</div>
-            <div style="display:flex;align-items:center;gap:7px;font-size:.85rem;color:rgba(255,255,255,.9)"><span style="color:var(--gl);font-weight:700">&#10003;</span>Vid&eacute;os FR&#8596;TH</div>
-            <div style="display:flex;align-items:center;gap:7px;font-size:.85rem;color:rgba(255,255,255,.9)"><span style="color:var(--gl);font-weight:700">&#10003;</span>Accompagnement</div>
-            <div style="display:flex;align-items:center;gap:7px;font-size:.85rem;color:rgba(255,255,255,.9)"><span style="color:var(--gl);font-weight:700">&#10003;</span>Z&eacute;ro faux profil</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Profils v&eacute;rifi&eacute;s</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Vid&eacute;os FR&#8596;TH</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Accompagnement</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Z&eacute;ro faux profil</div>
           </div>
         </div>
       </div>
@@ -2394,7 +2394,7 @@ async function qSub(){
       status:'pending',
       name:QA.name||'',
       age:QA.age?parseInt(QA.age):null,
-      gender:QA.g||'',
+      gender:QA.g==='h'?'homme':(QA.g==='f'?'femme':(QA.g||'')),
       email:ev,
       whatsapp:wv||'',
       city:QA.ville||QA.city||'',
@@ -2406,8 +2406,9 @@ async function qSub(){
       looking:QA.looking||'',
       family:QA.fam||'',
       age_range:(QA.ageRange||[]).join(', '),
-      photo_url:photoUrl,
-      video_url:videoUrl
+      photo_url:photoUrl||'',
+      video_url:videoUrl||'',
+      note:'langFR:'+(QA.lfr||'—')+' langTH:'+(QA.lth||'—')
     };
     var sres=await fetch(SB_URL+'/rest/v1/inscriptions',{
       method:'POST',
@@ -2415,8 +2416,14 @@ async function qSub(){
       body:JSON.stringify(payload)
     });
     saved=sres.ok;
-    if(!sres.ok)console.log('Supabase a refusé',sres.status,await sres.text());
-  }catch(e){console.log('Échec Supabase',e);}
+    if(!sres.ok){
+      var errText=await sres.text();
+      console.log('Supabase a refusé',sres.status,errText);
+      show('Supabase erreur '+sres.status+': '+errText.substring(0,80));
+    }else{
+      console.log('Supabase OK - inscription enregistrée');
+    }
+  }catch(e){console.log('Échec Supabase',e);show('Erreur réseau: '+e.message);}
 
   if(!saved){
     clearTimeout(safety);
@@ -2426,6 +2433,17 @@ async function qSub(){
   }
 
   clearTimeout(safety);
+
+  // Afficher le message de succès directement — sans dépendre de bQ()
+  var qwrap = document.getElementById('QB') || document.querySelector('.qwrap') || document.querySelector('#pg-inscription .scroll');
+  if(qwrap){
+    qwrap.innerHTML = '<div style="text-align:center;padding:48px 28px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;font-weight:600;color:var(--nv);margin-bottom:12px">Inscription envoyée</div>'
+      +'<div style="width:48px;height:2px;background:linear-gradient(to right,var(--g),var(--gl));margin:0 auto 20px"></div>'
+      +'<div style="font-size:.95rem;color:var(--tm);line-height:1.8;margin-bottom:32px">Nous avons bien reçu votre dossier.<br>Patrick vous contactera sous 48h à l\'adresse<br><strong style="color:var(--nv)">'+ev+'</strong></div>'
+      +'<button onclick="goPage(\'pg-h\')" style="padding:13px 30px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:var(--sans)">Retour à l\'accueil</button>'
+      +'</div>';
+  }
   U={name:QA.name||'',city:QA.ville||QA.city||'',bio:QA.desc||'',gender:QA.g||'',email:ev,status:'pending'};
   try{updNav();}catch(e){}
   QD=true;
