@@ -1005,9 +1005,9 @@ h2 em{font-style:italic;color:var(--g)}
             <div style="padding:9px"><div style="font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--nv)">Noi, 29</div><div style="font-size:.72rem;color:var(--td);margin-bottom:5px">&#128205; Chiang Mai</div><div style="font-size:.65rem;padding:2px 8px;background:var(--gd);color:var(--g);border-radius:7px;display:inline-block;border:1px solid rgba(196,150,42,.2);font-weight:600">&#127468;&#127463; Un peu</div></div>
           </div>
         </div>
-        <div style="background:linear-gradient(135deg,var(--nv),#243156);border-radius:16px;padding:18px;color:#fff">
-          <div style="font-family:var(--serif);font-size:1.4rem;margin-bottom:12px;text-align:center">Pourquoi <em style="color:var(--gl)">LoveSiam</em>&nbsp;?</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:linear-gradient(135deg,var(--nv),#243156);border-radius:16px;padding:18px 24px;color:#fff">
+          <div style="font-family:var(--serif);font-size:1.4rem;margin-bottom:14px;text-align:center">Pourquoi <em style="color:var(--gl)">LoveSiam</em>&nbsp;?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:340px;margin:0 auto">
             <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Profils v&eacute;rifi&eacute;s</div>
             <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Vid&eacute;os FR&#8596;TH</div>
             <div style="display:flex;align-items:center;gap:8px;font-size:.92rem;color:rgba(255,255,255,.95)"><span style="color:var(--gl);font-weight:700;flex-shrink:0">&#10003;</span>Accompagnement</div>
@@ -2466,7 +2466,7 @@ async function qSub(){
     })
   }).catch(function(e){console.log('email admin échoué',e);});
 
-  // Email de confirmation au candidat
+  // Email de confirmation au candidat (à son adresse)
   var msgConfirm='Bonjour '+(QA.name||'')+',\n\n'
     +'Votre inscription sur LoveSiam a bien été reçue.\n\n'
     +'Patrick Hessel, votre consultant, examinera votre dossier et vous contactera sous 48h.\n\n'
@@ -2477,21 +2477,18 @@ async function qSub(){
     +'Pour toute question : contact@thailovematching.com\n\n'
     +'Cordialement,\nPatrick Hessel — LoveSiam';
   fetch('https://api.emailjs.com/api/v1.0/email/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      service_id:'service_9mpf0pc',
-      template_id:'template_yvczjb6',
-      user_id:'_62gqRQHF8yL_AVRb',
+      service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',
       template_params:{
         to_email:ev,
         from_name:'LoveSiam — Patrick Hessel',
         from_email:'contact@thailovematching.com',
-        subject:'Votre inscription LoveSiam est bien reçue',
+        subject:'Votre inscription LoveSiam est bien reçue ✓',
         message:msgConfirm
       }
     })
-  }).catch(function(e){console.log('email confirmation échoué',e);});
+  }).catch(function(e){console.log('email confirmation candidat échoué',e);});
 
   // Afficher le message de succès directement — sans dépendre de bQ()
   var qwrap = document.getElementById('QB') || document.querySelector('.qwrap') || document.querySelector('#pg-inscription .scroll');
