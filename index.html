@@ -2435,6 +2435,37 @@ async function qSub(){
 
   clearTimeout(safety);
 
+  // Notification email (non-bloquante)
+  var msgEmail='NOUVELLE INSCRIPTION LoveSiam\n'
+    +'=================================\n'
+    +'Profil: '+(QA.g==='h'?'Homme français':'Femme thaïlandaise')+'\n'
+    +'Prénom: '+(QA.name||'—')+'\n'
+    +'Âge: '+(QA.age||'—')+' ans\n'
+    +'Ville: '+(QA.ville||QA.city||'—')+'\n'
+    +'Anglais: '+(QA.len||'—')+'\n'
+    +'Recherche: '+(QA.looking||'—')+'\n'
+    +'Situation familiale: '+(QA.fam||'—')+'\n'
+    +'Âge souhaité: '+((QA.ageRange||[]).join(', ')||'—')+'\n'
+    +'Vidéo: '+(videoUrl?'✅ '+videoUrl:'Non enregistrée')+'\n'
+    +'Email: '+ev+'\n'
+    +'WhatsApp: '+(wv||'Non fourni');
+  fetch('https://api.emailjs.com/api/v1.0/email/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      service_id:'service_9mpf0pc',
+      template_id:'template_yvczjb6',
+      user_id:'_62gqRQHF8yL_AVRb',
+      template_params:{
+        to_email:'contact@thailovematching.com',
+        from_name:(QA.name||'Candidat'),
+        from_email:ev,
+        subject:'Nouvelle inscription LoveSiam — '+(QA.name||ev),
+        message:msgEmail
+      }
+    })
+  }).catch(function(e){console.log('email notification échouée',e);});
+
   // Afficher le message de succès directement — sans dépendre de bQ()
   var qwrap = document.getElementById('QB') || document.querySelector('.qwrap') || document.querySelector('#pg-inscription .scroll');
   if(qwrap){
