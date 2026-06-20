@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>LoveSiam</title>
+<title>LoveSiam v3.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1119,6 +1119,10 @@ h2 em{font-style:italic;color:var(--g)}
     <button onclick="openModal('m-filters')" style="background:none;border:1.5px solid rgba(26,39,68,.14);border-radius:12px;padding:4px 10px;font-size:.74rem;color:var(--nv);cursor:pointer;font-family:var(--sans)">&#8856; Filtres</button>
   </div>
 </div>
+<div style="display:flex;justify-content:center;padding:8px 12px 0;gap:8px">
+  <button id="view-fem" onclick="setGenderView('femme',this)" style="flex:1;padding:8px;border-radius:12px;border:1.5px solid var(--g);background:var(--g);color:#fff;font-size:.8rem;font-weight:600;cursor:pointer;font-family:var(--sans)">&#127481;&#127469; Vue Femmes thaï</button>
+  <button id="view-hom" onclick="setGenderView('homme',this)" style="flex:1;padding:8px;border-radius:12px;border:1.5px solid rgba(26,39,68,.2);background:transparent;color:var(--nv);font-size:.8rem;font-weight:600;cursor:pointer;font-family:var(--sans)">&#127467;&#127479; Vue Hommes français</button>
+</div>
 <div class="g-tabs" style="position:sticky;top:50px;z-index:5;background:#fff;border-bottom:2px solid var(--b2)">
   <button class="gtb on" onclick="setGTab('all',this)">Tous <span class="gcnt" id="g-all">0</span></button>
   <button class="gtb" onclick="setGTab('new',this)">Nouveaux <span class="gcnt" id="g-new">0</span></button>
@@ -1444,6 +1448,77 @@ PROFILES[3].joinedAt=NOW-30*DAY;
 PROFILES[4].joinedAt=NOW-60*DAY;
 PROFILES.forEach(function(p){p.isNew=(NOW-p.joinedAt)<DAY;});
 
+var genderView='femme'; // par défaut: voir les femmes thaïlandaises
+
+function setGenderView(g2,btn){
+  genderView=g2;
+  var bf=document.getElementById('view-fem');
+  var bh=document.getElementById('view-hom');
+  if(bf&&bh){
+    if(g2==='femme'){
+      bf.style.background='var(--g)';bf.style.color='#fff';bf.style.borderColor='var(--g)';
+      bh.style.background='transparent';bh.style.color='var(--nv)';bh.style.borderColor='rgba(26,39,68,.2)';
+    }else{
+      bh.style.background='var(--g)';bh.style.color='#fff';bh.style.borderColor='var(--g)';
+      bf.style.background='transparent';bf.style.color='var(--nv)';bf.style.borderColor='rgba(26,39,68,.2)';
+    }
+  }
+  loadApprovedProfiles(g2);
+}
+
+// Charger les vrais profils validés depuis Supabase
+function loadApprovedProfiles(filterGender){
+  var gf=filterGender||genderView||'femme';
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',SB_URL+'/rest/v1/inscriptions?select=*&status=eq.approved&gender=eq.'+gf+'&order=created_at.desc',true);
+  xhr.setRequestHeader('apikey',SB_KEY);
+  xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);
+  xhr.timeout=8000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(xhr.status>=200&&xhr.status<300){
+      try{
+        var rows=JSON.parse(xhr.responseText);
+        if(!rows||!rows.length){
+          // Garder les profils démo si aucun profil réel validé
+          renderGrid(gTab||'all');
+          return;
+        }
+        var newProfiles=rows.map(function(r,i){
+          var joinedMs=r.created_at?new Date(r.created_at).getTime():NOW-i*DAY;
+          return {
+            id:'sb_'+r.id,
+            name:r.name||'—',
+            age:r.age||0,
+            ville:r.city||'',
+            taille:r.height?(r.height+' cm'):'',
+            poids:r.weight?(r.weight+' kg'):'',
+            fam:r.family||'',
+            looking:r.looking||'',
+            en:r.english_level||'',
+            online:false,
+            joinedAt:joinedMs,
+            isNew:(NOW-joinedMs)<DAY,
+            likedMe:false,
+            bio:r.bio||'',
+            emoji:gf==='femme'?'&#128105;':'&#128104;',
+            photo:r.photo_url||'',
+            video:r.video_url||'',
+            bg:gf==='femme'?'linear-gradient(160deg,#1A2744,#0D1522)':'linear-gradient(160deg,#2A1A44,#150D22)',
+            fromSupabase:true
+          };
+        });
+        PROFILES.length=0;
+        newProfiles.forEach(function(p){PROFILES.push(p);});
+        renderGrid(gTab||'all');
+        renderSwipe();
+      }catch(e){console.log('Erreur parsing profils',e);}
+    }
+  };
+  xhr.send();
+}
+loadApprovedProfiles('femme');
+
 var MSGS=[
   {id:1,pid:0,name:"Ning",emoji:"&#128105;",bg:"linear-gradient(135deg,#E8D5C4,#C4A080)",time:"5min",prev:"Bonjour, ravie de vous rencontrer !",unread:1,online:true},
   {id:2,pid:1,name:"Pim",emoji:"&#128105;",bg:"linear-gradient(135deg,#D4C4E8,#9080B8)",time:"17h09",prev:"Comment allez-vous ?",unread:1,online:true},
@@ -1726,7 +1801,8 @@ function renderSwipe(){
     if(p.isNew)badges+="<span style=\"background:rgba(196,150,42,.9);color:#fff;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:12px;margin-right:4px\">&#10024; Nouveau</span>";
     badges+="<span style=\"background:rgba(0,0,0,.45);color:#fff;font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:12px\">"+enLabel(p.en)+"</span>";
     // Carte épurée : photo + info minimale
-    card.innerHTML="<div class=\"swc-photo\" style=\"background:"+p.bg+";height:100%\"><span style=\"font-size:80px\">"+p.emoji+"</span>"
+    var swBg=p.photo?'background:url('+p.photo+') center/cover no-repeat':'background:'+p.bg;
+    card.innerHTML="<div class=\"swc-photo\" style=\""+swBg+";height:100%\">"+(p.photo?'':'<span style="font-size:80px">'+p.emoji+'</span>')
       +"<div class=\"sw-badge-like\" id=\"sl"+i+"\">LIKE</div>"
       +"<div class=\"sw-badge-nope\" id=\"sn"+i+"\">PASSE</div>"
       +"<div style=\"position:absolute;bottom:0;left:0;right:0;padding:12px 14px 14px;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);\">"
@@ -1795,7 +1871,9 @@ function renderGrid(tab){
   }
 }
 var enFlag=p.en==="Excellent"?"&#127468;&#127463;":p.en==="Moyen"?"&#127468;&#127463;":"&#127468;&#127463;";
-    gc.innerHTML="<div class=\"gc-bg\" style=\"background:"+p.bg+"\"><span>"+p.emoji+"</span></div><div class=\"gc-grd\"></div>"+(p.isNew?"<div class=\"gc-new\">NEW</div>":"")+"<div class=\"gc-info\">"+(p.online?"<span class=\"gc-dot\"></span>":"")+"<div class=\"gc-name\">"+p.name+", "+p.age+"</div><div class=\"gc-sub\">"+p.ville+" &middot; "+enFlag+" "+p.en+"</div></div><div class=\"gc-act\"><button class=\"gc-hbtn"+(liked?" liked":"")+"\">"+( liked?"&#10084;":"&#9825;")+"</button></div>";
+    var gcBg=p.photo?"background:url("+p.photo+") center/cover no-repeat":"background:"+p.bg;
+    gc.innerHTML="<div class=\"gc-bg\" style=\""+gcBg+"\">"
+      +(p.photo?"":"<span>"+p.emoji+"</span>")+"</div><div class=\"gc-grd\"></div>"+(p.isNew?"<div class=\"gc-new\">NEW</div>":"")+"<div class=\"gc-info\">"+(p.online?"<span class=\"gc-dot\"></span>":"")+"<div class=\"gc-name\">"+p.name+", "+p.age+"</div><div class=\"gc-sub\">"+p.ville+" &middot; "+enFlag+" "+p.en+"</div></div><div class=\"gc-act\"><button class=\"gc-hbtn"+(liked?" liked":"")+"\">"+( liked?"&#10084;":"&#9825;")+"</button></div>";
     gc.querySelector(".gc-hbtn").onclick=function(e){
       e.stopPropagation();
       if(likedSet.has(p.id)){likedSet.delete(p.id);this.innerHTML="&#9825;";this.classList.remove("liked");updateHeartsUI();}
@@ -2265,7 +2343,7 @@ var T = {
     q2_height: 'Taille',
     q2_weight: 'Poids',
     q2_photos: 'Vos photos',
-    q2_photo1: 'Photo principale *',
+    q2_photo1: 'Photo principale',
     q2_photo_add: 'Ajouter ma photo principale',
     q2_photo_size: 'JPG, PNG — max 5MB',
     q2_add: 'Ajouter',
@@ -2319,200 +2397,152 @@ function setupCityAutocomplete(id,lang){/* stub */}
 const SB_URL='https://sbglyelgqceydofgllop.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c';
 
-async function qSub(){
- var btn=g('QSND');
- var timedOut=false;
- var safety=setTimeout(function(){
-   timedOut=true;
-   if(btn){btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;}
-   show('&#10060; Ça prend trop de temps. Vérifiez votre connexion et réessayez.');
- },15000);
- try{
-  var em=g('QE'), wh=g('QWH');
-  if(!em){clearTimeout(safety);return;}
-  var ev=(em.value||'').trim();
-  var wv=wh?(wh.value||'').trim():'';
-  if(!ev){clearTimeout(safety);show('&#9888; Email requis');return;}
-  QA.email=ev; QA.whats=wv;
+// XHR fiable sur tous iOS - remplace fetch pour l'envoi critique
+function qNextStep(){
+  if(QS===0){
+    if(!QA.g){show('⚠ Veuillez choisir votre profil');return;}
+    QS++;bQ();
+  }
+  else if(QS===1){qNI();}
+  else if(QS===2){
+    var d=g('QDESC');
+    var desc=(d?d.value.trim():'');
+    if(!desc){qFieldErr(d,'Une présentation est requise');return;}
+    qFieldOk(d);QA.desc=desc;QS++;bQ();
+  }
+  else if(QS===3){QS++;bQ();}
+  else if(QS===4){
+    if(!QA.looking){show('⚠ Veuillez choisir ce que vous recherchez');return;}
+    QS++;bQ();
+  }
+  else{QS=Math.min(QS+1,QT_STEPS-1);bQ();}
+}
+
+function qSubmitBtn(){
+  var em=g('QE');
+  var errDiv=document.getElementById('QE_ERR');
+  if(!em||!em.value.trim()){
+    em.style.border='2px solid #C0392B';
+    if(!errDiv){
+      var d=document.createElement('div');
+      d.id='QE_ERR';
+      d.style.cssText='color:#C0392B;font-size:.82rem;margin-top:4px;margin-bottom:8px;';
+      d.textContent='⚠ L\'adresse email est obligatoire';
+      em.parentNode.insertBefore(d,em.nextSibling);
+    }
+    em.focus();
+    return;
+  }
+  if(errDiv)errDiv.remove();
+  em.style.border='';
+  var btn=g('QSND');
+  if(btn&&btn.disabled)return;
   if(btn){btn.textContent='Envoi…';btn.disabled=true;}
+  try{qSub();}catch(err){
+    if(btn){btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;}
+    alert('Erreur: '+(err&&err.message?err.message:'inattendue'));
+  }
+}
 
-  var photoUrl='';
-  try{
-    if(QA.photos&&QA.photos[0]){
-      var fd1=new FormData();
-      fd1.append('file',QA.photos[0]);
-      fd1.append('upload_preset','lovesiam_videos');
-      var pr=await fetch('https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',{method:'POST',body:fd1});
-      var pd=await pr.json();
-      photoUrl=pd.secure_url||'';
-    }
-  }catch(e){console.log('upload photo échoué',e);}
+function qSub(){
+  var btn=g('QSND');
+  var em=g('QE');
+  var wh=g('QWH');
+  if(!em||!em.value.trim()){
+    if(btn){btn.textContent='Envoyer ma candidature \u2756';btn.disabled=false;}
+    alert('Veuillez entrer votre email.');
+    return;
+  }
+  var ev=em.value.trim();
+  var wv=wh?wh.value.trim():'';
+  QA.email=ev;QA.whats=wv;
 
-  var videoUrl='';
-  try{
-    if(QA.vidBlob){
-      var fd2=new FormData();
-      fd2.append('file',QA.vidBlob,'video.webm');
-      fd2.append('upload_preset','lovesiam_videos');
-      var vr=await fetch('https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',{method:'POST',body:fd2});
-      var vd=await vr.json();
-      videoUrl=vd.secure_url||'';
-    }
-  }catch(e){console.log('upload vidéo échoué',e);}
-
+  // 1. Sauvegarder localement en premier
   var entry={
     id:'ins_'+Date.now(),
     date:new Date().toISOString(),
     status:'pending',
-    name:QA.name||'',
-    age:QA.age||'',
-    gender:QA.g||'',
-    email:ev,
-    whatsapp:wv||'',
+    name:QA.name||'',age:QA.age||'',
+    gender:QA.g==='h'?'homme':(QA.g==='f'?'femme':''),
+    email:ev,whatsapp:wv,
     city:QA.ville||QA.city||'',
-    country:QA.country||'',
-    height:QA.height||'',
-    weight:QA.weight||'',
-    bio:QA.desc||'',
-    englishLevel:QA.len||'',
-    looking:QA.looking||'',
-    family:QA.fam||'',
-    ageRange:(QA.ageRange||[]).join(', '),
-    photos:photoUrl?[photoUrl]:[],
-    video:videoUrl,
-    note:''
+    height:QA.height||'',weight:QA.weight||'',
+    bio:QA.desc||'',english_level:QA.len||'',
+    looking:QA.looking||'',family:QA.fam||'',
+    age_range:(QA.ageRange||[]).join(', ')
   };
   try{
-    var existing=[];
-    try{existing=JSON.parse(localStorage.getItem('ls_inscriptions')||'[]');}catch(e){}
-    existing.unshift(entry);
-    localStorage.setItem('ls_inscriptions',JSON.stringify(existing));
-  }catch(saveErr){console.log('save error:',saveErr);}
+    var lst=JSON.parse(localStorage.getItem('ls_inscriptions')||'[]');
+    lst.unshift(entry);localStorage.setItem('ls_inscriptions',JSON.stringify(lst));
+  }catch(e){}
 
-  var saved=false;
-  try{
-    var payload={
-      status:'pending',
-      name:QA.name||'',
-      age:QA.age?parseInt(QA.age):null,
-      gender:QA.g==='h'?'homme':(QA.g==='f'?'femme':(QA.g||'')),
-      email:ev,
-      whatsapp:wv||'',
-      city:QA.ville||QA.city||'',
-      country:QA.country||'',
-      height:QA.height||'',
-      weight:QA.weight||'',
-      bio:QA.desc||'',
-      english_level:QA.len||'',
-      looking:QA.looking||'',
-      family:QA.fam||'',
-      age_range:(QA.ageRange||[]).join(', '),
-      photo_url:photoUrl||'',
-      video_url:videoUrl||'',
-      note:'langFR:'+(QA.lfr||'—')+' langTH:'+(QA.lth||'—')
-    };
-    var sres=await fetch(SB_URL+'/rest/v1/inscriptions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Prefer':'return=minimal'},
-      body:JSON.stringify(payload)
-    });
-    saved=sres.ok;
-    if(!sres.ok){
-      var errText=await sres.text();
-      console.log('Supabase a refusé',sres.status,errText);
-      show('Supabase erreur '+sres.status+': '+errText.substring(0,80));
-    }else{
-      console.log('Supabase OK - inscription enregistrée');
-    }
-  }catch(e){console.log('Échec Supabase',e);show('Erreur réseau: '+e.message);}
-
-  if(!saved){
-    clearTimeout(safety);
-    if(btn){btn.textContent='Envoyer ma candidature ✦';btn.disabled=false;}
-    show('&#10060; Erreur réseau. Vérifiez votre connexion et réessayez.');
-    return;
-  }
-
-  clearTimeout(safety);
-
-  // Notification email admin (non-bloquante)
-  var msgEmail='NOUVELLE INSCRIPTION LoveSiam\n'
-    +'=================================\n'
-    +'Profil: '+(QA.g==='h'?'Homme français':'Femme thaïlandaise')+'\n'
-    +'Prénom: '+(QA.name||'—')+'\n'
-    +'Âge: '+(QA.age||'—')+' ans\n'
-    +'Ville: '+(QA.ville||QA.city||'—')+'\n'
-    +'Anglais: '+(QA.len||'—')+'\n'
-    +'Recherche: '+(QA.looking||'—')+'\n'
-    +'Situation familiale: '+(QA.fam||'—')+'\n'
-    +'Âge souhaité: '+((QA.ageRange||[]).join(', ')||'—')+'\n'
-    +'Vidéo: '+(videoUrl?'✅ '+videoUrl:'Non enregistrée')+'\n'
-    +'Email: '+ev+'\n'
-    +'WhatsApp: '+(wv||'Non fourni');
-  fetch('https://api.emailjs.com/api/v1.0/email/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      service_id:'service_9mpf0pc',
-      template_id:'template_yvczjb6',
-      user_id:'_62gqRQHF8yL_AVRb',
-      template_params:{
-        to_email:'contact@thailovematching.com',
-        from_name:(QA.name||'Candidat'),
-        from_email:ev,
-        subject:'Nouvelle inscription LoveSiam — '+(QA.name||ev),
-        message:msgEmail
-      }
-    })
-  }).catch(function(e){console.log('email admin échoué',e);});
-
-  // Email de confirmation au candidat (à son adresse)
-  var msgConfirm='Bonjour '+(QA.name||'')+',\n\n'
-    +'Votre inscription sur LoveSiam a bien été reçue.\n\n'
-    +'Patrick Hessel, votre consultant, examinera votre dossier et vous contactera sous 48h.\n\n'
-    +'Récapitulatif de votre inscription :\n'
-    +'- Recherche : '+(QA.looking||'—')+'\n'
-    +'- Âge souhaité : '+((QA.ageRange||[]).join(', ')||'—')+'\n'
-    +'- Vidéo : '+(videoUrl?'Enregistrée ✅':'À enregistrer plus tard')+'\n\n'
-    +'Pour toute question : contact@thailovematching.com\n\n'
-    +'Cordialement,\nPatrick Hessel — LoveSiam';
-  fetch('https://api.emailjs.com/api/v1.0/email/send',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',
-      template_params:{
-        to_email:ev,
-        from_name:'LoveSiam — Patrick Hessel',
-        from_email:'contact@thailovematching.com',
-        subject:'Votre inscription LoveSiam est bien reçue ✓',
-        message:msgConfirm
-      }
-    })
-  }).catch(function(e){console.log('email confirmation candidat échoué',e);});
-
-  // Afficher le message de succès directement — sans dépendre de bQ()
-  var qwrap = document.getElementById('QB') || document.querySelector('.qwrap') || document.querySelector('#pg-inscription .scroll');
+  // 2. Afficher succès IMMÉDIATEMENT
+  var qwrap=document.getElementById('QB');
   if(qwrap){
-    qwrap.innerHTML = '<div style="text-align:center;padding:48px 28px">'
-      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:2rem;font-weight:600;color:var(--nv);margin-bottom:12px">Inscription envoyée</div>'
-      +'<div style="width:48px;height:2px;background:linear-gradient(to right,var(--g),var(--gl));margin:0 auto 20px"></div>'
-      +'<div style="font-size:.95rem;color:var(--tm);line-height:1.8;margin-bottom:32px">Nous avons bien reçu votre dossier.<br>Patrick vous contactera sous 48h à l\'adresse<br><strong style="color:var(--nv)">'+ev+'</strong></div>'
-      +'<button onclick="goPage(\'pg-h\')" style="padding:13px 30px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.95rem;font-weight:600;cursor:pointer;font-family:var(--sans)">Retour à l\'accueil</button>'
+    qwrap.innerHTML='<div style="text-align:center;padding:48px 24px">'
+      +'<div style="font-family:\'Cormorant Garamond\',serif;font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\u00e9e</div>'
+      +'<div style="width:40px;height:2px;background:linear-gradient(to right,var(--g),var(--gl));margin:0 auto 18px"></div>'
+      +'<div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Dossier bien re\u00e7u.<br>Patrick vous contactera sous 48h<br>à <strong style="color:var(--nv)">'+ev+'</strong></div>'
+      +'<button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour à l\'accueil</button>'
       +'</div>';
   }
-  U={name:QA.name||'',city:QA.ville||QA.city||'',bio:QA.desc||'',gender:QA.g||'',email:ev,status:'pending'};
-  try{updNav();}catch(e){}
-  QD=true;
-  try{bQ();}catch(e){}
-  try{rFG();}catch(e){}
- }catch(fatal){
-  clearTimeout(safety);
-  console.log('qSub erreur fatale',fatal);
-  var btn2=g('QSND');
-  if(btn2){btn2.textContent='Envoyer ma candidature ✦';btn2.disabled=false;}
-  show('&#10060; Une erreur est survenue. Réessayez.');
- }
+  QD=true;try{updNav();}catch(e){}
+
+  // 3. Envoyer à Supabase en arrière-plan (non-bloquant)
+  setTimeout(function(){
+    var payload=JSON.stringify({
+      status:'pending',
+      name:entry.name,age:entry.age?parseInt(entry.age):null,
+      gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,
+      city:entry.city,height:entry.height,weight:entry.weight,
+      bio:entry.bio,english_level:entry.english_level,
+      looking:entry.looking,family:entry.family,
+      age_range:entry.age_range,photo_url:'',video_url:'',
+      note:'local_id:'+entry.id
+    });
+    var xhr=new XMLHttpRequest();
+    xhr.onreadystatechange=function(){
+      if(xhr.readyState!==4)return;
+      if(xhr.status>=200&&xhr.status<300){
+        console.log('Supabase OK',xhr.status);
+      }else{
+        console.log('Supabase erreur',xhr.status,xhr.responseText);
+      }
+    };
+    xhr.ontimeout=function(){console.log('Supabase timeout');};
+    xhr.onerror=function(){console.log('Supabase onerror');};
+    xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);
+    xhr.setRequestHeader('Content-Type','application/json');
+    xhr.setRequestHeader('apikey',SB_KEY);
+    xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);
+    xhr.setRequestHeader('Prefer','return=minimal');
+    xhr.timeout=15000;
+    xhr.send(payload);
+  },200);
+
+  // 4. Email admin en arrière-plan
+  setTimeout(function(){
+    var msg='Inscription LoveSiam\nPrénom: '+entry.name+'\nEmail: '+entry.email+'\nGenre: '+entry.gender+'\nVille: '+entry.city+'\nRecherche: '+entry.looking;
+    var xhr2=new XMLHttpRequest();
+    xhr2.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);
+    xhr2.setRequestHeader('Content-Type','application/json');
+    xhr2.timeout=10000;
+    xhr2.send(JSON.stringify({service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',template_params:{to_email:'contact@thailovematching.com',from_name:entry.name||'Candidat',from_email:entry.email,subject:'Nouvelle inscription LoveSiam \u2014 '+entry.name,message:msg}}));
+  },400);
+
+  // 5. Email confirmation candidat en arrière-plan
+  setTimeout(function(){
+    var xhr3=new XMLHttpRequest();
+    xhr3.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);
+    xhr3.setRequestHeader('Content-Type','application/json');
+    xhr3.timeout=10000;
+    xhr3.send(JSON.stringify({service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',template_params:{to_email:entry.email,from_name:'LoveSiam',from_email:'contact@thailovematching.com',subject:'Votre inscription LoveSiam est confirm\u00e9e',message:'Bonjour '+entry.name+',\n\nVotre inscription a bien \u00e9t\u00e9 re\u00e7ue.\nPatrick vous contactera sous 48h.\n\nCordialement,\nLoveSiam'}}));
+  },600);
 }
+
+
+
+
 
 
 
@@ -2640,14 +2670,38 @@ function show(m){
 
 function closeMl(){document.getElementById('ML_BG').style.display='none';document.body.style.overflow=''}
 
+function qFieldErr(el,msg){
+  if(!el)return;
+  el.style.border='2px solid #C0392B';
+  el.style.background='rgba(192,57,43,.06)';
+}
+function qFieldOk(el){
+  if(!el)return;
+  el.style.border='';el.style.background='';
+}
+
 function qNI(){
   const n=g('QN'),a=g('QAG'),h2=g('QH'),w=g('QW');
-  if(!n||!n.value.trim()){show('⚠️ Prénom requis');return}
-  if(!a||!a.value){show('⚠️ Âge requis');return}
+  var ok=true;
+  if(!n||!n.value.trim()){qFieldErr(n);ok=false;}else{qFieldOk(n);}
+  if(!a||!a.value){qFieldErr(a);ok=false;}else{qFieldOk(a);}
+  if(!h2||!h2.value){qFieldErr(h2);ok=false;}else{qFieldOk(h2);}
+  if(!w||!w.value){qFieldErr(w);ok=false;}else{qFieldOk(w);}
+  // Anglais
+  var lenBlock=g('LENBLOCK');
+  var lenErr=g('len_err');
+  if(!QA.len){
+    if(lenBlock){lenBlock.style.outline='2px solid #C0392B';lenBlock.style.borderRadius='10px';}
+    if(lenErr){lenErr.style.display='block';}
+    ok=false;
+  } else {
+    if(lenBlock){lenBlock.style.outline='';lenBlock.style.borderRadius='';}
+    if(lenErr){lenErr.style.display='none';}
+  }
+  if(!ok){show('⚠ Veuillez compléter tous les champs requis (*)');return;}
   QA.name=n.value.trim();QA.age=a.value;
   const v=g('QV2');if(v)QA.ville=v.value.trim();
-  if(h2&&h2.value)QA.height=h2.value;
-  if(w&&w.value)QA.weight=w.value;
+  QA.height=h2.value;QA.weight=w.value;
   QS++;bQ();
 }
 
@@ -2785,7 +2839,7 @@ function bQ(){
      +'<div class="cd '+(QA.g==='h'?'sl':'')+'" data-cd="g:h"><div class="ci2">👨</div><div><div class="cl">'+tq.q0_man+'</div><div class="cs3">'+tq.q0_man_sub+'</div></div><div class="ck">'+(QA.g==='h'?'✓':'')+'</div></div>'
      +'<div class="cd '+(QA.g==='f'?'sl':'')+'" data-cd="g:f"><div class="ci2">👩</div><div><div class="cl">'+tq.q0_woman+'</div><div class="cs3">'+tq.q0_woman_sub+'</div></div><div class="ck">'+(QA.g==='f'?'✓':'')+'</div></div>'
      +'</div>'
-     +'<div class="qn"><button class="qx qf" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qx qf" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
   else if(QS===1){
     var hO='',wO='';
@@ -2807,15 +2861,15 @@ function bQ(){
     var lbl_th = LANG==='th' ? 'ภาษาไทย' : 'Thaïlandais';
     var lbl_fr_lang = LANG==='th' ? 'ภาษาฝรั่งเศส' : 'Français';
     var lbl_en = LANG==='th' ? 'ภาษาอังกฤษ' : 'Anglais';
-    var langBlock='<div class="lr"><div class="lh"><span>&#127468;&#127463;</span><span style="font-size:.9rem;font-weight:500">'+lbl_en+'</span></div><div class="lp">'+langEN+'</div></div>'
+    var langBlock='<div class="lr" id="LENBLOCK"><div class="lh"><span>&#127468;&#127463;</span><span style="font-size:.9rem;font-weight:500">'+lbl_en+'<span style="color:#C0392B;margin-left:2px">*</span></span></div><div class="lp">'+langEN+'</div><div id="len_err" style="display:none;color:#C0392B;font-size:.8rem;margin-top:4px;font-weight:500">⚠ Niveau d\'anglais requis</div></div>'
     h='<div class="qe">'+stepLabel+' 2/'+QT_STEPS+'</div>'
      +'<div class="qt">'+tq.q2_title+'</div>'
-     +'<div class="fg"><label class="fl">'+tq.q2_name+'</label><input class="fi" id="QN" type="text" placeholder="'+tq.q2_name+'" value="'+(QA.name||'')+'"></div>'
-     +'<div class="fg"><label class="fl">'+tq.q2_age+'</label><select class="fsl" id="QAG"><option value="">—</option></select></div>'
+     +'<div class="fg"><label class="fl">'+tq.q2_name+'<span style="color:#C0392B;margin-left:2px">*</span></label><input class="fi" id="QN" type="text" placeholder="'+tq.q2_name+'" value="'+(QA.name||'')+'"></div>'
+     +'<div class="fg"><label class="fl">'+tq.q2_age+'<span style="color:#C0392B;margin-left:2px">*</span></label><select class="fsl" id="QAG"><option value="">—</option></select></div>'
      +buildCountrySelect(iF, QA.country, LANG)
     +'<div class="fg" id="QV2_WRAP"><label class="fl">'+cityLabel+'</label><input class="fi" id="QV2" type="text" placeholder="'+cityPh+'" value="'+(QA.ville||'')+'"></div>'
-     +'<div class="r2"><div class="fg"><label class="fl">'+tq.q2_height+'</label><select class="fsl" id="QH"><option value="">cm</option>'+hO+'</select></div>'
-     +'<div class="fg"><label class="fl">'+tq.q2_weight+'</label><select class="fsl" id="QW"><option value="">kg</option>'+wO+'</select></div></div>'
+     +'<div class="r2"><div class="fg"><label class="fl">'+tq.q2_height+'<span style="color:#C0392B;margin-left:2px">*</span></label><select class="fsl" id="QH"><option value="">cm</option>'+hO+'</select></div>'
+     +'<div class="fg"><label class="fl">'+tq.q2_weight+'<span style="color:#C0392B;margin-left:2px">*</span></label><select class="fsl" id="QW"><option value="">kg</option>'+wO+'</select></div></div>'
      +'<div class="ds"><div class="dl"></div><div class="dt">'+tq.q2_photos+'</div><div class="dl"></div></div>'
      +'<div style="margin-bottom:14px">'
      +'<div style="font-size:.62rem;letter-spacing:.15em;text-transform:uppercase;color:var(--nv);margin-bottom:7px;font-weight:600">'+tq.q2_photo1+'</div>'
@@ -2836,7 +2890,7 @@ function bQ(){
      +'<div id="PP3" style="display:none;margin-top:5px;font-size:.68rem;color:var(--gn)"></div></div></div>'
      +'<div class="ds"><div class="dl"></div><div class="dt">'+tq.q2_lang+'</div><div class="dl"></div></div>'
      +langBlock
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
   else if(QS===2){
     var bioOk=LANG==='th'?'ความหลงใหล การเดินทาง ภาษา วัฒนธรรม สิ่งที่คุณค้นหา':'Passions, voyages, langue, culture, ce que vous cherchez';
@@ -2847,7 +2901,7 @@ function bQ(){
      +'<div class="qt">'+tq.q3_title+'</div>'
      +'<p class="qs">'+tq.q3_sub+'</p>'
      +'<div class="fg">'
-     +'<label class="fl">'+tq.q3_title+'</label>'
+     +'<label class="fl">'+tq.q3_title+' <span style="color:#C0392B">*</span></label>'
      +'<div style="position:relative">'
      +'<textarea class="fa" id="QDESC" rows="5" placeholder="'+tq.q3_placeholder+'" maxlength="500" oninput="updateBioCount(this)">'+(QA.desc||'')+'</textarea>'
      +'<div id="BIO_COUNT" style="text-align:right;font-size:.72rem;color:var(--td);margin-top:3px">'+(QA.desc?QA.desc.length:0)+'/500</div>'
@@ -2859,7 +2913,7 @@ function bQ(){
      +'<div style="font-size:.72rem;font-weight:700;color:var(--rd);margin-bottom:5px">'+bioBadLbl+'</div>'
      +'<div style="font-size:.82rem;color:var(--tm)">'+bioBad+'</div>'
      +'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
   else if(QS===3){
     var ageRanges=['18–25','25–30','30–35','35–40','40–50','50–60','60+'];
@@ -2872,7 +2926,7 @@ function bQ(){
      +'<div class="qt">Tranche d\'âge souhaitée</div>'
      +'<p class="qs">Sélectionnez votre tranche d\'âge</p>'
      +'<div class="pl">'+ageHtml+'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
     else if(QS===4){
     var relOpts=LANG==='th'
@@ -2881,9 +2935,9 @@ function bQ(){
     var relHtml='';
     for(var ri2=0;ri2<relOpts.length;ri2++){var ro=relOpts[ri2];relHtml+='<div class="cd '+(QA.looking===ro.vl?'sl':'')+'" data-cd="looking:'+ro.vl+'"><div class="ci2">'+ro.ic+'</div><div><div class="cl">'+ro.lb+'</div><div class="cs3">'+ro.sb+'</div></div><div class="ck">'+(QA.looking===ro.vl?'✓':'')+'</div></div>';}
     h='<div class="qe">'+stepLabel+' 5/'+QT_STEPS+'</div>'
-     +'<div class="qt">'+(LANG==='th'?'คุณ<em>กำลังมองหา</em>อะไร':'Ce que vous <em>recherchez</em>')+'</div>'
+     +'<div class="qt">'+(LANG==='th'?'คุณ<em>กำลังมองหา</em>อะไร':'Ce que vous <em>recherchez</em>')+' <span style="color:#C0392B">*</span></div>'
      +'<div class="cs2">'+relHtml+'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
     else if(QS===5){
     var famOpts=LANG==='th'
@@ -2893,7 +2947,7 @@ function bQ(){
     h='<div class="qe">'+stepLabel+' 6/'+QT_STEPS+'</div>'
      +'<div class="qt">'+(LANG==='th'?'<em>สถานะ</em>ครอบครัว':'Votre <em>situation</em> familiale')+'</div>'
      +'<div class="cs2">'+famHtml+'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
   else if(QS===6){
     var tip1=LANG==='th'?'สถานที่สว่าง':'Lieu lumineux';
@@ -2973,7 +3027,7 @@ function bQ(){
      +'<div class="uz" id="QUZ"><div style="font-size:1.7rem;margin-bottom:5px">📤</div><div style="font-size:.8rem;font-weight:500;color:var(--nv)">'+tq.q7_upload_btn+'</div><div style="font-size:.68rem;color:var(--td)">'+tq.q7_upload_size+'</div><input type="file" id="QUF" accept="video/*" capture="camcorder" style="display:none"></div>'
      +'<div id="QUS" style="display:none;padding:8px 11px;border-radius:8px;margin-bottom:8px;background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.18);font-size:.73rem;color:var(--gn)"></div>'
      +'<div style="text-align:center;margin-bottom:8px"><span style="font-size:.7rem;color:var(--td);cursor:pointer;text-decoration:underline" id="QSK">'+skipLbl+'</span></div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX">'+contBtn+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QNX" onclick="qNextStep()">'+contBtn+'</button></div>';
   }
   else if(QS===7){
     var vidOk=LANG==='th'?'วิดีโอพร้อมแล้ว':'Vidéo prête';
@@ -2997,25 +3051,33 @@ function bQ(){
      +'<div class="qt">'+tq.q8_title+'</div>'
      +'<p class="qs">'+tq.q8_sub+'</p>'
      +(QV?'<div style="padding:8px 11px;border-radius:8px;margin-bottom:11px;background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.18);font-size:.73rem;color:var(--gn)">✅ '+vidOk+'</div>':'<div style="padding:8px 11px;border-radius:8px;margin-bottom:11px;background:var(--gd);border:1px solid rgba(196,150,42,.16);font-size:.73rem;color:var(--tm)">📹 '+vidNo+'</div>')
-     +'<div class="fg"><label class="fl">'+tq.q8_email+'</label><input class="fi" id="QE" type="email" placeholder="votre@email.com" value="'+(QA.email||'')+'"></div>'
+     +'<div class="fg"><label class="fl">'+tq.q8_email+'<span style="color:#C0392B;margin-left:2px"></span></label><input class="fi" id="QE" type="email" placeholder="votre@email.com" value="'+(QA.email||'')+'"></div>'
      +'<div class="fg"><label class="fl">'+tq.q8_whatsapp+'</label><input class="fi" id="QWH" type="tel" placeholder="+33 6 xx xx xx xx" value="'+(QA.whats||'')+'"></div>'
      +'<div class="sr"><div style="font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--g);margin-bottom:8px;font-weight:500">'+tq.q8_recap+'</div>'+rwHtml+'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QSND">'+tq.q_send+'</button></div>';
+     +'<div class="qn"><button class="qb" id="QBK">'+backBtn+'</button><button class="qx" id="QSND" onclick="qSubmitBtn()">'+tq.q_send+'</button></div>';
   }
 
   g('QB').innerHTML=h;
   if(pb)pb.style.width=((QS+1)/QT_STEPS*100)+'%';
 
-  if(g('QNX'))g('QNX').onclick=function(){
-    if(QS===0){if(!QA.g){show('⚠️ '+(LANG==='th'?'เลือกโปรไฟล์ของคุณ':'Choisissez votre profil'));return;}QS++;bQ();}
-    else if(QS===1){qNI();}
-    else if(QS===2){var d=g('QDESC');if(d)QA.desc=d.value.trim();QS++;bQ();}
-    else if(QS===3){QS++;bQ();}
-    else if(QS===4){if(!QA.looking){show('⚠️ '+(LANG==='th'?'เลือกสิ่งที่คุณมองหา':'Choisissez ce que vous recherchez'));return;}QS++;bQ();}
-    else{QS=Math.min(QS+1,QT_STEPS-1);bQ();}
-  };
   if(g('QBK'))g('QBK').onclick=function(){qCC();QS=Math.max(QS-1,0);bQ();};
-  if(g('QSND'))g('QSND').onclick=qSub;
+  if(g('QSND'))g('QSND').onclick=function(e){
+    e.preventDefault();
+    var b=g('QSND');
+    if(b&&b.disabled)return;
+    var em=g('QE');
+    if(!em||!em.value.trim()){
+      var emailField=document.querySelector('#QE');
+      if(emailField){emailField.style.border='2px solid var(--rd)';emailField.focus();}
+      toast('&#9888; L\'adresse email est obligatoire');
+      return;
+    }
+    if(b){b.textContent='Envoi\u2026';b.disabled=true;}
+    try{qSub();}catch(err){
+      if(b){b.textContent='Envoyer ma candidature \u2756';b.disabled=false;}
+      toast('Erreur: '+(err&&err.message?err.message:'inattendue'));
+    }
+  };
   if(g('QBA'))g('QBA').onclick=qCamOn;
   if(g('QBR2'))g('QBR2').onclick=qCamRec;
   if(g('QBS'))g('QBS').onclick=qCamStop;
