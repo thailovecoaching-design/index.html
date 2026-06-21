@@ -338,7 +338,7 @@ h2 em{font-style:italic;color:var(--g)}
   .bn{position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
   .pp-bg{position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important;box-shadow:0 0 50px rgba(0,0,0,.2)}
   #modal-report{position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
-  #pg-swipe{height:100vh !important;position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
+  #pg-swipe{height:100vh !important;position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important;display:flex !important;flex-direction:column !important}
   .grid3{grid-template-columns:repeat(4,1fr)}
   .pp-media{height:380px}
 }
@@ -478,13 +478,15 @@ h2 em{font-style:italic;color:var(--g)}
     <button onclick="openModal('m-filters')" style="background:none;border:1.5px solid rgba(26,39,68,.14);border-radius:12px;padding:4px 10px;font-size:.74rem;color:var(--nv);cursor:pointer;font-family:var(--sans)">&#8856; Filtres</button>
   </div>
 </div>
-<!-- Zone swipe : flex column, carte prend tout l'espace dispo, boutons collés dessous -->
-<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px 14px 0;min-height:0">
-  <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:3px 0 5px;flex-shrink:0"></div>
-  <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0"></div>
-  <div id="SW_ACTS" style="flex-shrink:0;height:88px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2)">
-    <button onclick="doSwipe('left')" style="width:68px;height:68px;border-radius:50%;background:#fff;border:2.5px solid #DDD;font-size:1.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.15);color:#888;-webkit-appearance:none">&#10005;</button>
-    <button onclick="doSwipe('right')" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 18px rgba(192,57,43,.45);-webkit-appearance:none">&#10084;&#65039;</button>
+<!-- Zone swipe : hauteur calculée = 100vh - nav top 50px - nav bas 62px -->
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;padding-bottom:62px">
+  <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:6px 0 4px;flex-shrink:0;background:var(--b2)"></div>
+  <div style="flex:1;padding:0 14px;min-height:0;display:flex;flex-direction:column">
+    <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0"></div>
+  </div>
+  <div id="SW_ACTS" style="flex-shrink:0;height:100px;min-height:100px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2);border-top:1px solid rgba(26,39,68,.06)">
+    <button onclick="doSwipe('left')" style="width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid #E0D8D0;font-size:1.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.12);color:#888;-webkit-appearance:none;flex-shrink:0">&#10005;</button>
+    <button onclick="doSwipe('right')" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:1.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(192,57,43,.4);-webkit-appearance:none;flex-shrink:0">&#10084;&#65039;</button>
   </div>
 </div>
 <div class="bn">
@@ -826,7 +828,40 @@ function loadApprovedProfiles(filterGender){
         var NOW2=Date.now();
         var newProfiles=filtered.map(function(r,i){
           var jMs=r.created_at?new Date(r.created_at).getTime():NOW2-i*86400000;
-          return {id:'sb_'+r.id,name:r.name||'\u2014',age:r.age||0,ville:r.city||'',taille:r.height?(r.height+' cm'):'',poids:r.weight?(r.weight+' kg'):'',fam:r.family||'',looking:r.looking||'',en:r.english_level||'',online:false,joinedAt:jMs,isNew:(NOW2-jMs)<86400000,likedMe:false,bio:r.bio||'',emoji:gf==='femme'?'&#128105;':'&#128104;',photo:r.photo_url||'',video:r.video_url||'',videoTranslated:r.video_translated||false,bg:gf==='femme'?'linear-gradient(160deg,#1A2744,#0D1522)':'linear-gradient(160deg,#2A1A44,#150D22)',fromSupabase:true};
+          // photo_url peut être base64 ou URL Cloudinary
+          var photoUrl=r.photo_url||'';
+          // video_url est une URL Cloudinary complète
+          var videoUrl=r.video_url||'';
+          // Générer miniature depuis vidéo Cloudinary si pas de photo
+          var thumbFromVideo='';
+          if(!photoUrl&&videoUrl&&videoUrl.indexOf('cloudinary.com')>=0){
+            thumbFromVideo=videoUrl
+              .replace('/video/upload/','/video/upload/so_0,f_jpg,w_400,h_500,c_fill,g_face,q_auto/')
+              .replace(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/,'.jpg');
+          }
+          return {
+            id:'sb_'+r.id,
+            name:r.name||'\u2014',
+            age:r.age||0,
+            ville:r.city||'',
+            taille:r.height?(r.height+' cm'):'',
+            poids:r.weight?(r.weight+' kg'):'',
+            fam:r.family||'',
+            looking:r.looking||'',
+            en:r.english_level||'',
+            online:false,
+            joinedAt:jMs,
+            isNew:(NOW2-jMs)<86400000,
+            likedMe:false,
+            bio:r.bio||'',
+            emoji:gf==='femme'?'&#128105;':'&#128104;',
+            photo:photoUrl,
+            photoThumb:thumbFromVideo,
+            video:videoUrl,
+            videoTranslated:r.video_translated===true||r.video_translated==='true'||r.video_translated==='TRUE',
+            bg:gf==='femme'?'linear-gradient(160deg,#1A2744,#0D1522)':'linear-gradient(160deg,#2A1A44,#150D22)',
+            fromSupabase:true
+          };
         });
         PROFILES.length=0;newProfiles.forEach(function(p){PROFILES.push(p);});
         renderGrid(gTab||'all');renderSwipe();
@@ -914,15 +949,17 @@ function renderSwipe(){
     if(p.online)badges+='<span style="background:rgba(39,174,96,.9);color:#fff;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:12px;margin-right:4px">&#9679; En ligne</span>';
     if(p.isNew)badges+='<span style="background:rgba(196,150,42,.9);color:#fff;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:12px;margin-right:4px">&#10024; Nouveau</span>';
     badges+='<span style="background:rgba(0,0,0,.45);color:#fff;font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:12px">'+enLabel(p.en)+'</span>';
-    // PATCH 2 : photo prioritaire > miniature Cloudinary > bg
+    // Miniature : photo > photoThumb (généré depuis vidéo) > miniature Cloudinary > bg
     var thumbUrl='';
-    if(p.photo){thumbUrl=p.photo;}
+    if(p.photo&&p.photo.indexOf('cloudinary.com')>=0){thumbUrl=p.photo;}
+    else if(p.photo&&p.photo.indexOf('data:image')===0){thumbUrl=p.photo;}
+    else if(p.photoThumb){thumbUrl=p.photoThumb;}
     else if(p.video&&p.video.indexOf('cloudinary.com')>=0){
       thumbUrl=p.video
         .replace('/video/upload/','/video/upload/so_0,f_jpg,w_400,h_500,c_fill,g_face,q_auto/')
-        .replace(/\.(mp4|mov|webm)$/i,'.jpg');
+        .replace(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/,'.jpg');
     }
-    var swBg=thumbUrl?'background:url('+thumbUrl+') center/cover no-repeat':'background:'+p.bg;
+    var swBg=thumbUrl?'background:url("'+thumbUrl+'") center/cover no-repeat':'background:'+p.bg;
     // Carte : photo 55% de hauteur + bandeau info en bas
     card.innerHTML=
       // Zone photo (55% de la carte)
@@ -980,14 +1017,16 @@ function renderGrid(tab){
   list.forEach(function(p){
     var liked=likedSet.has(p.id),gc=document.createElement("div");gc.className="gc";
     var enFlag="&#127468;&#127463;";
-    // PATCH 3 : photo > miniature Cloudinary > bg
-    var gcThumb=p.photo||'';
-    if(!gcThumb&&p.video&&p.video.indexOf('cloudinary.com')>=0){
+    // Miniature grille : photo > photoThumb > miniature Cloudinary > bg
+    var gcThumb='';
+    if(p.photo&&(p.photo.indexOf('cloudinary.com')>=0||p.photo.indexOf('data:image')===0)){gcThumb=p.photo;}
+    else if(p.photoThumb){gcThumb=p.photoThumb;}
+    else if(p.video&&p.video.indexOf('cloudinary.com')>=0){
       gcThumb=p.video
         .replace('/video/upload/','/video/upload/so_0,f_jpg,w_300,h_450,c_fill,g_face,q_auto/')
-        .replace(/\.(mp4|mov|webm)$/i,'.jpg');
+        .replace(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/,'.jpg');
     }
-    var gcBg=gcThumb?"background:url("+gcThumb+") center/cover no-repeat":"background:"+p.bg;
+    var gcBg=gcThumb?'background:url("'+gcThumb+'") center/cover no-repeat':'background:'+p.bg;
     gc.innerHTML='<div class="gc-bg" style="'+gcBg+'">'+(gcThumb?'':'<span>'+p.emoji+'</span>')+'</div>'
       +'<div class="gc-grd"></div>'
       +(p.isNew?'<div class="gc-new">NEW</div>':'')
@@ -1039,37 +1078,38 @@ function openProfile(p){
   var mediaStrip=g("pp-media"),dots=g("pp-dots");
   if(mediaStrip){
     var slides=[],dotHtml=[];
-    // Slides photos
-    if(p.photo){
-      slides.push('<div class="pp-media-slide photo-slide" style="background-image:url('+p.photo+')">'
+    // Slide photo — gère base64 ET URL Cloudinary
+    var photoSrc = p.photo || p.photoThumb || '';
+    if(photoSrc){
+      slides.push('<div class="pp-media-slide photo-slide" style="background-image:url(\''+photoSrc+'\')">'
         +(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')
-        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;font-size:.65rem;padding:3px 8px;border-radius:10px;pointer-events:none">&#127916; Glisse &rarr;</div>'
+        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.65rem;padding:3px 9px;border-radius:10px">&#127916; &rarr;</div>'
         +'<div class="pp-photo-grd"></div></div>');
       dotHtml.push('<div class="pp-pdot on"></div>');
-    }else{
+    } else {
       slides.push('<div class="pp-media-slide photo-slide" style="background:'+p.bg+'">'
         +'<span style="font-size:80px">'+p.emoji+'</span>'
         +(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')
-        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;font-size:.65rem;padding:3px 8px;border-radius:10px;pointer-events:none">&#127916; Glisse &rarr;</div>'
+        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.65rem;padding:3px 9px;border-radius:10px">&#127916; &rarr;</div>'
         +'<div class="pp-photo-grd"></div></div>');
       dotHtml.push('<div class="pp-pdot on"></div>');
     }
-    // Slide vidéo — toujours présente
-    if(p.video){
-      var tradBadge=p.videoTranslated
-        ?'<div style="background:rgba(196,150,42,.2);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:10px">&#127760; Vidéo traduite FR&#8596;TH</div>'
-        :'<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:.72rem;color:rgba(255,255,255,.6);font-weight:600;margin-bottom:10px">&#127916; Vidéo originale</div>';
+    // Slide vidéo — toujours présente (player si video_url, placeholder sinon)
+    var videoSrc = p.video && p.video.length > 5 ? p.video : '';
+    if(videoSrc){
+      var tradBadge = p.videoTranslated
+        ? '<div style="background:rgba(196,150,42,.2);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:10px">&#127760; Vid&eacute;o traduite FR&#8596;TH</div>'
+        : '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:.72rem;color:rgba(255,255,255,.6);font-weight:600;margin-bottom:10px">&#127916; Vid&eacute;o originale</div>';
       slides.push('<div class="pp-media-slide video-slide">'
-        +tradBadge
-        +'<video src="'+p.video+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:230px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
-        +'</div>');
+        + tradBadge
+        + '<video src="'+videoSrc+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:230px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
+        + '</div>');
       dotHtml.push('<div class="pp-pdot vid"></div>');
     } else {
-      // Placeholder — vidéo pas encore disponible
       slides.push('<div class="pp-media-slide video-slide">'
         +'<div style="font-size:3.5rem;margin-bottom:14px">&#127916;</div>'
-        +'<div style="color:rgba(255,255,255,.8);font-size:.95rem;font-weight:600;margin-bottom:6px">Vidéo de présentation</div>'
-        +'<div style="color:rgba(255,255,255,.35);font-size:.78rem">Bientôt disponible avec traduction FR&#8596;TH</div>'
+        +'<div style="color:rgba(255,255,255,.8);font-size:.95rem;font-weight:600;margin-bottom:6px">Vid&eacute;o de pr&eacute;sentation</div>'
+        +'<div style="color:rgba(255,255,255,.35);font-size:.78rem">Bient&ocirc;t disponible avec traduction FR&#8596;TH</div>'
         +'</div>');
       dotHtml.push('<div class="pp-pdot vid"></div>');
     }
