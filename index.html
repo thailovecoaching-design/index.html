@@ -479,12 +479,12 @@ h2 em{font-style:italic;color:var(--g)}
   </div>
 </div>
 <!-- Zone swipe : flex:1 prend tout l'espace entre nav top et nav bas -->
-<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;padding-bottom:62px">
   <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:6px 0 4px;flex-shrink:0;background:var(--b2)"></div>
-  <div style="flex:1;padding:0 14px 8px;min-height:0;display:flex;flex-direction:column">
+  <div style="flex:1;padding:0 14px 4px;min-height:0;display:flex;flex-direction:column">
     <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0"></div>
   </div>
-  <div id="SW_ACTS" style="flex-shrink:0;height:96px;min-height:96px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2)">
+  <div id="SW_ACTS" style="flex-shrink:0;height:90px;min-height:90px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2)">
     <button onclick="doSwipe('left')" style="width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid #E0D8D0;font-size:1.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.12);color:#888;-webkit-appearance:none;flex-shrink:0">&#10005;</button>
     <button onclick="doSwipe('right')" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:1.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(192,57,43,.4);-webkit-appearance:none;flex-shrink:0">&#10084;&#65039;</button>
   </div>
@@ -1017,17 +1017,19 @@ function renderGrid(tab){
   list.forEach(function(p){
     var liked=likedSet.has(p.id),gc=document.createElement("div");gc.className="gc";
     var enFlag="&#127468;&#127463;";
-    // Miniature grille : photo > photoThumb > miniature Cloudinary > bg
+    // Miniature grille : MÊME logique que swipe
     var gcThumb='';
     if(p.photo&&(p.photo.indexOf('cloudinary.com')>=0||p.photo.indexOf('data:image')===0)){gcThumb=p.photo;}
     else if(p.photoThumb){gcThumb=p.photoThumb;}
     else if(p.video&&p.video.indexOf('cloudinary.com')>=0){
       gcThumb=p.video
-        .replace('/video/upload/','/video/upload/so_0,f_jpg,w_300,h_450,c_fill,g_face,q_auto/')
+        .replace('/video/upload/','/video/upload/so_0,f_jpg,w_400,h_500,c_fill,g_face,q_auto/')
         .replace(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/,'.jpg');
     }
-    var gcBg=gcThumb?'background:url("'+gcThumb+'") center/cover no-repeat':'background:'+p.bg;
-    gc.innerHTML='<div class="gc-bg" style="'+gcBg+'">'+(gcThumb?'':'<span>'+p.emoji+'</span>')+'</div>'
+    var gcStyle=gcThumb
+      ?'width:100%;height:100%;background:url("'+gcThumb+'") center/cover no-repeat'
+      :'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.8rem;background:'+p.bg;
+    gc.innerHTML='<div style="'+gcStyle+'">'+(gcThumb?'':'<span>'+p.emoji+'</span>')+'</div>'
       +'<div class="gc-grd"></div>'
       +(p.isNew?'<div class="gc-new">NEW</div>':'')
       +'<div class="gc-info">'+(p.online?'<span class="gc-dot"></span>':'')+'<div class="gc-name">'+p.name+', '+p.age+'</div><div class="gc-sub">'+p.ville+' &middot; '+enFlag+' '+p.en+'</div></div>'
@@ -1079,25 +1081,23 @@ function openProfile(p){
   if(mediaStrip){
     var slides=[],dotHtml=[];
 
-    // ── SLIDE 1 : VIDÉO EN PREMIER (visible dès l'ouverture) ──
+    // ── SLIDE 1 : VIDÉO EN PREMIER ──
     var videoSrc = p.video && p.video.length > 5 ? p.video : '';
-    console.log('[LoveSiam] Profil:',p.name,'| video:',videoSrc?videoSrc.substring(0,60)+'...':'VIDE','| videoTranslated:',p.videoTranslated);
     if(videoSrc){
       var tradBadge = p.videoTranslated
         ? '<div style="background:rgba(196,150,42,.25);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:8px">&#127760; Vid&eacute;o traduite FR&#8596;TH</div>'
         : '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:.72rem;color:rgba(255,255,255,.6);font-weight:600;margin-bottom:8px">&#127916; Vid&eacute;o originale</div>';
       slides.push('<div class="pp-media-slide video-slide">'
         + tradBadge
-        + '<video src="'+videoSrc+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:240px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
-        + '<div style="color:rgba(255,255,255,.35);font-size:.65rem;margin-top:8px">&#8592; Glisse pour voir la photo</div>'
+        + '<video src="'+videoSrc+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:200px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
+        + '<div style="color:rgba(255,255,255,.3);font-size:.62rem;margin-top:6px">&#8592; Photo</div>'
         + '</div>');
       dotHtml.push('<div class="pp-pdot vid on"></div>');
     } else {
-      // Pas de vidéo — placeholder
-      slides.push('<div class="pp-media-slide video-slide">'
-        +'<div style="font-size:3rem;margin-bottom:12px">&#127916;</div>'
-        +'<div style="color:rgba(255,255,255,.7);font-size:.9rem;font-weight:600;margin-bottom:5px">Vid&eacute;o de pr&eacute;sentation</div>'
-        +'<div style="color:rgba(255,255,255,.3);font-size:.75rem">Bient&ocirc;t disponible &bull; traduction FR&#8596;TH</div>'
+      slides.push('<div class="pp-media-slide video-slide" style="background:linear-gradient(160deg,#1a0a2e,#0d0518)">'
+        +'<div style="font-size:2.5rem;margin-bottom:8px">&#127916;</div>'
+        +'<div style="color:rgba(255,255,255,.75);font-size:.85rem;font-weight:600;margin-bottom:4px">Pas encore de vid&eacute;o</div>'
+        +'<div style="color:rgba(255,255,255,.3);font-size:.7rem">Glisse &#8594; pour voir la photo</div>'
         +'</div>');
       dotHtml.push('<div class="pp-pdot vid on"></div>');
     }
@@ -1137,21 +1137,36 @@ function openProfile(p){
   var chips=g("pp-chips");chips.innerHTML="";
   [[p.online?"&#9679; En ligne":null,"gn"],[p.isNew?"&#10024; Nouveau":null,"gl"],[p.likedMe?"&#10084;&#65039; Vous aime":null,"rd"],["&#127468;&#127463; "+p.en,""],[p.looking,""]].forEach(function(c){if(!c[0])return;var s=document.createElement("span");s.className="pp-chip"+(c[1]?" "+c[1]:"");s.innerHTML=c[0];chips.appendChild(s);});
 
-  // Bio avec traduction automatique OpenAI FR↔TH
+  // Bio avec boutons traduction FR↔TH en haut
   var bioEl=g("pp-bio");
-  bioEl.innerHTML='<div style="font-size:.88rem;color:var(--tm);line-height:1.7" id="bio-txt">'+escHtml(p.bio||'—')+'</div>'
-    +'<div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-    +'<button onclick="tradBio(\'fr\')" id="bio-btn-fr" style="padding:4px 12px;border-radius:14px;border:1.5px solid var(--g);background:var(--gd);color:var(--g);font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--sans)">&#127467;&#127479; Voir en FR</button>'
-    +'<button onclick="tradBio(\'th\')" id="bio-btn-th" style="padding:4px 12px;border-radius:14px;border:1.5px solid rgba(26,39,68,.15);background:transparent;color:var(--td);font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans)">&#127481;&#127469; Voir en TH</button>'
-    +'<span id="bio-trad-status" style="font-size:.68rem;color:var(--td)"></span>'
-    +'</div>';
+  bioEl.innerHTML=
+    // Boutons traduction EN PREMIER — toujours visibles sans scroller
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">'
+    +'<button onclick="tradBio(\'fr\')" id="bio-btn-fr" style="padding:5px 14px;border-radius:16px;border:1.5px solid var(--g);background:var(--gd);color:var(--g);font-size:.75rem;font-weight:700;cursor:pointer;font-family:var(--sans)">&#127467;&#127479; Traduction FR</button>'
+    +'<button onclick="tradBio(\'th\')" id="bio-btn-th" style="padding:5px 14px;border-radius:16px;border:1.5px solid rgba(26,39,68,.15);background:transparent;color:var(--td);font-size:.75rem;font-weight:600;cursor:pointer;font-family:var(--sans)">&#127481;&#127469; Traduction TH</button>'
+    +'</div>'
+    +'<div id="bio-trad-status" style="font-size:.68rem;color:var(--g);margin-bottom:8px;min-height:16px"></div>'
+    +'<div style="font-size:.88rem;color:var(--tm);line-height:1.7;background:var(--b2);padding:12px;border-radius:11px" id="bio-txt">'+escHtml(p.bio||'—')+'</div>';
 
   g("pp-info").innerHTML=[["Situation",p.fam],["Recherche",p.looking],["Anglais",p.en],["Membre depuis",sinceLabel(p)]].map(function(item){return'<div class="pp-info-item"><span class="pp-info-lbl">'+item[0]+'</span><div class="pp-info-val">'+item[1]+'</div></div>';}).join('');
   g("pp-back").onclick=function(){var pp=g("PP");pp.classList.remove("on");pp.style.display="none";};
 
-  // Stocker la bio originale pour la traduction
+  // Stocker la bio originale
   window._currentBio = p.bio || '';
   window._bioCache = {orig: p.bio || ''};
+
+  // Traduction automatique au chargement — détecte la langue et traduit
+  setTimeout(function(){
+    var bio = p.bio || '';
+    if(!bio || bio.length < 3) return;
+    var hasThai = /[\u0E00-\u0E7F]/.test(bio);
+    // Si bio en thaï → traduire automatiquement en FR
+    // Si bio en français → afficher directement (déjà en FR)
+    if(hasThai) {
+      tradBio('fr'); // traduction auto thaï → français
+    }
+    // Si pas thaï, la bio est déjà en français, pas besoin de traduire
+  }, 300);
 
   var likeBtn=g("pp-like-state");
   if(likeBtn){
