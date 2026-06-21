@@ -127,35 +127,29 @@ h2 em{font-style:italic;color:var(--g)}
 .gc-new{position:absolute;top:4px;left:4px;background:#1A6B3C;color:#fff;font-size:.5rem;font-weight:700;padding:2px 5px;border-radius:4px;text-transform:uppercase}
 .gc-lk{position:absolute;top:4px;right:4px;background:var(--rd);color:#fff;font-size:.5rem;font-weight:700;padding:2px 5px;border-radius:4px}
 /* PROFIL DETAIL — photos + vidéo scrollables */
-.pp-bg{position:fixed;inset:0;z-index:400;background:#fff;display:none;flex-direction:column}
+.pp-bg{position:fixed;inset:0;z-index:400;background:#fff;display:none;flex-direction:column;overflow:hidden}
 .pp-bg.on{display:flex}
-/* Desktop : cadrer le profil dans 960px comme les autres pages */
 @media(min-width:769px){
   .pp-bg{left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
 }
-.pp-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-bottom:1px solid rgba(26,39,68,.08);flex-shrink:0;height:50px}
+.pp-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-bottom:1px solid rgba(26,39,68,.08);flex-shrink:0;height:50px;min-height:50px}
 .pp-back-btn{background:none;border:none;color:var(--g);font-size:.9rem;font-weight:600;cursor:pointer;font-family:var(--sans)}
 .pp-top-btns{display:flex;gap:8px}
-.pp-btn{padding:7px 14px;border:none;border-radius:18px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:var(--sans)}
-.pp-btn-msg{background:var(--nv);color:#fff}
-.pp-btn-like{background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff}
-.pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y}
+.pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 /* Galerie média : photos + vidéo scrollable horizontalement */
-.pp-media{display:flex;overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;width:100%;height:280px;flex-shrink:0;scrollbar-width:none}
+.pp-media{display:flex;overflow-x:scroll;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;width:100%;height:260px;min-height:260px;flex-shrink:0;scrollbar-width:none}
 .pp-media::-webkit-scrollbar{display:none}
-.pp-media-slide{min-width:100vw;height:280px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden}
+.pp-media-slide{min-width:100vw;width:100vw;height:260px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden}
+@media(min-width:769px){.pp-media-slide{min-width:960px;width:960px}}
 .pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center;background-repeat:no-repeat}
 .pp-media-slide.video-slide{background:#0d0d1a;flex-direction:column;gap:8px;padding:16px;text-align:center}
-@media(min-width:769px){
-  .pp-media-slide{min-width:960px}
-}
 .pp-photo-grd{position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
 .pp-online-badge{position:absolute;top:12px;left:12px;background:var(--gn);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:10px}
-.pp-media-dots{display:flex;justify-content:center;gap:5px;padding:6px 0;flex-shrink:0;background:#fff}
+.pp-media-dots{display:flex;justify-content:center;gap:5px;padding:5px 0;min-height:22px;flex-shrink:0;background:#fff}
 .pp-pdot{height:6px;border-radius:3px;background:rgba(26,39,68,.15);transition:all .2s;width:6px}
 .pp-pdot.on{background:var(--g);width:18px}
-.pp-pdot.vid{background:rgba(196,150,42,.5)}
-.pp-pdot.vid.on{background:var(--g)}
+.pp-pdot.vid{background:rgba(196,150,42,.4)}
+.pp-pdot.vid.on{background:var(--g);width:18px}
 .pp-body{padding:12px 16px 20px}
 .pp-name{font-family:var(--serif);font-size:2rem;font-weight:600;color:var(--nv);margin-bottom:3px}
 .pp-meta{font-size:.84rem;color:var(--td);margin-bottom:12px}
@@ -170,8 +164,8 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-info-item{background:var(--b2);border-radius:10px;padding:10px;overflow:hidden;min-width:0}
 .pp-info-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--td);display:block;margin-bottom:3px}
 .pp-info-val{font-size:.86rem;font-weight:600;color:var(--nv);word-break:break-word}
-/* BOUTONS PASSER / JAIME dans profil detail */
-.pp-actions{display:flex;flex-shrink:0;height:86px;min-height:86px;position:relative;z-index:10}
+/* BOUTONS PASSER / JAIME — toujours visibles en bas */
+.pp-actions{display:flex;flex-shrink:0;height:80px;min-height:80px;position:relative;z-index:10}
 .pp-pass-btn{flex:1;background:#1e1e2e;border:none;border-right:1px solid rgba(255,255,255,.08);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;-webkit-appearance:none;appearance:none}
 .pp-like-btn{flex:1;background:var(--rd);border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;-webkit-appearance:none;appearance:none}
 /* MESSAGES */
@@ -518,7 +512,7 @@ h2 em{font-style:italic;color:var(--g)}
   <div class="pp-media" id="pp-media"></div>
   <div class="pp-media-dots" id="pp-dots"></div>
 </div>
-<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div class="pp-scroll">
   <div class="pp-body">
     <div id="pp-name" class="pp-name"></div>
     <div id="pp-meta" class="pp-meta"></div>
@@ -1142,9 +1136,23 @@ function openProfile(p){
   g("pp-meta").innerHTML=p.age+' ans &middot; &#128205; '+p.ville+' &middot; '+p.taille+' &middot; '+p.poids;
   var chips=g("pp-chips");chips.innerHTML="";
   [[p.online?"&#9679; En ligne":null,"gn"],[p.isNew?"&#10024; Nouveau":null,"gl"],[p.likedMe?"&#10084;&#65039; Vous aime":null,"rd"],["&#127468;&#127463; "+p.en,""],[p.looking,""]].forEach(function(c){if(!c[0])return;var s=document.createElement("span");s.className="pp-chip"+(c[1]?" "+c[1]:"");s.innerHTML=c[0];chips.appendChild(s);});
-  g("pp-bio").textContent=p.bio;
+
+  // Bio avec traduction automatique OpenAI FR↔TH
+  var bioEl=g("pp-bio");
+  bioEl.innerHTML='<div style="font-size:.88rem;color:var(--tm);line-height:1.7" id="bio-txt">'+escHtml(p.bio||'—')+'</div>'
+    +'<div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+    +'<button onclick="tradBio(\'fr\')" id="bio-btn-fr" style="padding:4px 12px;border-radius:14px;border:1.5px solid var(--g);background:var(--gd);color:var(--g);font-size:.72rem;font-weight:700;cursor:pointer;font-family:var(--sans)">&#127467;&#127479; Voir en FR</button>'
+    +'<button onclick="tradBio(\'th\')" id="bio-btn-th" style="padding:4px 12px;border-radius:14px;border:1.5px solid rgba(26,39,68,.15);background:transparent;color:var(--td);font-size:.72rem;font-weight:600;cursor:pointer;font-family:var(--sans)">&#127481;&#127469; Voir en TH</button>'
+    +'<span id="bio-trad-status" style="font-size:.68rem;color:var(--td)"></span>'
+    +'</div>';
+
   g("pp-info").innerHTML=[["Situation",p.fam],["Recherche",p.looking],["Anglais",p.en],["Membre depuis",sinceLabel(p)]].map(function(item){return'<div class="pp-info-item"><span class="pp-info-lbl">'+item[0]+'</span><div class="pp-info-val">'+item[1]+'</div></div>';}).join('');
   g("pp-back").onclick=function(){var pp=g("PP");pp.classList.remove("on");pp.style.display="none";};
+
+  // Stocker la bio originale pour la traduction
+  window._currentBio = p.bio || '';
+  window._bioCache = {orig: p.bio || ''};
+
   var likeBtn=g("pp-like-state");
   if(likeBtn){
     var isLiked=likedSet.has(p.id),isMatch=matchSet.has(p.id);
@@ -1154,7 +1162,6 @@ function openProfile(p){
     else{likeBtn.innerHTML="&#9825;";likeBtn.style.background="rgba(192,57,43,.15)";}
   }
   var pp=g("PP");pp.classList.add("on");pp.style.display="flex";
-  // Forcer recalcul du layout pour que pp-media ait la bonne largeur
   setTimeout(function(){
     var ms=g("pp-media");
     if(ms){ms.style.display='none';ms.offsetHeight;ms.style.display='flex';}
@@ -1162,6 +1169,77 @@ function openProfile(p){
 }
 
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
+
+// Échapper HTML
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Traduction bio FR↔TH via OpenAI
+function tradBio(toLang){
+  var bio=window._currentBio||'';
+  if(!bio)return;
+  var cache=window._bioCache||{};
+  var status=g('bio-trad-status');
+  var txt=g('bio-txt');
+  var btnFr=g('bio-btn-fr');
+  var btnTh=g('bio-btn-th');
+
+  // Retour à l'original
+  if(toLang==='orig'){
+    if(txt)txt.textContent=bio;
+    if(status)status.textContent='';
+    return;
+  }
+
+  // Utiliser le cache si disponible
+  if(cache[toLang]){
+    if(txt)txt.textContent=cache[toLang];
+    if(status)status.innerHTML='&#127760; Traduit automatiquement par IA';
+    return;
+  }
+
+  // Détecter la langue source
+  var hasThai=/[\u0E00-\u0E7F]/.test(bio);
+  var fromLang=hasThai?'thaï':'français';
+  var targetLabel=toLang==='th'?'thaï':'français';
+
+  if(status)status.innerHTML='<span style="color:var(--g)">&#8987; Traduction en cours...</span>';
+  if(btnFr)btnFr.style.opacity='.5';
+  if(btnTh)btnTh.style.opacity='.5';
+
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST','https://api.openai.com/v1/chat/completions',true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.setRequestHeader('Authorization','Bearer '+OPENAI_KEY);
+  xhr.timeout=10000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(btnFr)btnFr.style.opacity='1';
+    if(btnTh)btnTh.style.opacity='1';
+    try{
+      var r=JSON.parse(xhr.responseText);
+      var trad=r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content;
+      if(trad){
+        trad=trad.trim();
+        cache[toLang]=trad;
+        window._bioCache=cache;
+        if(txt)txt.textContent=trad;
+        if(status)status.innerHTML='&#127760; Traduit '+fromLang+' &#8594; '+targetLabel;
+      }
+    }catch(e){
+      if(status)status.innerHTML='<span style="color:var(--rd)">Erreur traduction</span>';
+    }
+  };
+  xhr.ontimeout=function(){
+    if(btnFr)btnFr.style.opacity='1';
+    if(btnTh)btnTh.style.opacity='1';
+    if(status)status.innerHTML='<span style="color:var(--rd)">Timeout</span>';
+  };
+  xhr.send(JSON.stringify({
+    model:'gpt-4o-mini',
+    max_tokens:300,
+    messages:[{role:'user',content:'Traduis ce texte en '+targetLabel+'. Donne UNIQUEMENT la traduction, sans explication:\n\n'+bio}]
+  }));
+}
 function likeFromProfileSwipe(){
   if(!currentPP)return;var p=currentPP;
   var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}
