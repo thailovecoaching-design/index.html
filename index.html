@@ -138,11 +138,11 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-btn-like{background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff}
 .pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y}
 /* Galerie média : photos + vidéo scrollable horizontalement */
-.pp-media{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;height:300px;flex-shrink:0;scrollbar-width:none}
+.pp-media{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;touch-action:pan-x;height:300px;flex-shrink:0;scrollbar-width:none}
 .pp-media::-webkit-scrollbar{display:none}
-.pp-media-slide{min-width:100%;height:300px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden}
+.pp-media-slide{min-width:100%;height:300px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden;touch-action:pan-x}
 .pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center;background-repeat:no-repeat}
-.pp-media-slide.video-slide{background:#0a0a1a;flex-direction:column;gap:10px;padding:16px}
+.pp-media-slide.video-slide{background:#0a0a1a;flex-direction:column;gap:10px;padding:16px;text-align:center}
 .pp-photo-grd{position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
 .pp-online-badge{position:absolute;top:12px;left:12px;background:var(--gn);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:10px}
 .pp-media-dots{display:flex;justify-content:center;gap:5px;padding:6px 0;flex-shrink:0;background:#fff}
@@ -466,7 +466,7 @@ h2 em{font-style:italic;color:var(--g)}
 </div>
 
 <!-- SWIPE -->
-<div id="pg-swipe" class="pg" style="position:relative">
+<div id="pg-swipe" class="pg">
 <div class="tnav" style="padding:0 12px">
   <div class="logo" onclick="goPage('pg-h')">Love<em>Siam</em></div>
   <div style="display:flex;align-items:center;gap:6px">
@@ -478,14 +478,13 @@ h2 em{font-style:italic;color:var(--g)}
     <button onclick="openModal('m-filters')" style="background:none;border:1.5px solid rgba(26,39,68,.14);border-radius:12px;padding:4px 10px;font-size:.74rem;color:var(--nv);cursor:pointer;font-family:var(--sans)">&#8856; Filtres</button>
   </div>
 </div>
-<!-- Zone swipe : dots + carte + boutons PASSER/JAIME bien visibles au-dessus de la nav -->
-<div style="position:absolute;top:50px;left:0;right:0;bottom:62px;display:flex;flex-direction:column;padding:6px 12px 0">
-  <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:4px 0;flex-shrink:0"></div>
-  <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0;margin-bottom:0"></div>
-  <!-- BOUTONS PASSER / JAIME — collés sous la carte, au-dessus de la nav -->
-  <div id="SW_ACTS" style="height:96px;min-height:96px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:40px;background:var(--b2);position:relative;z-index:10">
-    <button onclick="doSwipe('left')" style="width:72px;height:72px;border-radius:50%;background:#fff;border:3px solid #E8E0D8;font-size:2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.18);color:#666;-webkit-appearance:none;appearance:none">&#10005;</button>
-    <button onclick="doSwipe('right')" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:2.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(192,57,43,.5);-webkit-appearance:none;appearance:none">&#10084;&#65039;</button>
+<!-- Zone swipe : flex column, carte prend tout l'espace dispo, boutons collés dessous -->
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px 14px 0;min-height:0">
+  <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:3px 0 5px;flex-shrink:0"></div>
+  <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0"></div>
+  <div id="SW_ACTS" style="flex-shrink:0;height:88px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2)">
+    <button onclick="doSwipe('left')" style="width:68px;height:68px;border-radius:50%;background:#fff;border:2.5px solid #DDD;font-size:1.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.15);color:#888;-webkit-appearance:none">&#10005;</button>
+    <button onclick="doSwipe('right')" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 18px rgba(192,57,43,.45);-webkit-appearance:none">&#10084;&#65039;</button>
   </div>
 </div>
 <div class="bn">
@@ -506,10 +505,12 @@ h2 em{font-style:italic;color:var(--g)}
     <button id="pp-like-state" onclick="likeFromProfile()" style="padding:8px 16px;border:none;border-radius:16px;font-size:.84rem;font-weight:600;cursor:pointer;font-family:var(--sans);background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff">&#9825;</button>
   </div>
 </div>
-<div class="pp-scroll">
-  <!-- Galerie : slides scrollables horizontalement -->
+<!-- Galerie média : scroll horizontal photos + vidéo -->
+<div style="position:relative;flex-shrink:0">
   <div class="pp-media" id="pp-media"></div>
   <div class="pp-media-dots" id="pp-dots"></div>
+</div>
+<div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div class="pp-body">
     <div id="pp-name" class="pp-name"></div>
     <div id="pp-meta" class="pp-meta"></div>
@@ -804,7 +805,7 @@ function setGenderView(g2,btn){
 function loadApprovedProfiles(filterGender){
   var gf=filterGender||genderView||'homme';
   var xhr=new XMLHttpRequest();
-  var url=SB_URL+'/rest/v1/inscriptions?apikey='+SB_KEY+'&select=id,name,age,city,height,weight,family,looking,english_level,bio,photo_url,video_url,gender,status,created_at&status=eq.approved&order=created_at.desc';
+  var url=SB_URL+'/rest/v1/inscriptions?apikey='+SB_KEY+'&select=id,name,age,city,height,weight,family,looking,english_level,bio,photo_url,video_url,video_translated,gender,status,created_at&status=eq.approved&order=created_at.desc';
   xhr.open('GET',url,true);xhr.timeout=10000;
   xhr.onreadystatechange=function(){
     if(xhr.readyState!==4)return;
