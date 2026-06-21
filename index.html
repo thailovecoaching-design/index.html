@@ -478,13 +478,13 @@ h2 em{font-style:italic;color:var(--g)}
     <button onclick="openModal('m-filters')" style="background:none;border:1.5px solid rgba(26,39,68,.14);border-radius:12px;padding:4px 10px;font-size:.74rem;color:var(--nv);cursor:pointer;font-family:var(--sans)">&#8856; Filtres</button>
   </div>
 </div>
-<!-- Zone swipe : hauteur calculée = 100vh - nav top 50px - nav bas 62px -->
-<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;padding-bottom:62px">
+<!-- Zone swipe : flex:1 prend tout l'espace entre nav top et nav bas -->
+<div style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
   <div id="SW_DOTS" style="display:flex;justify-content:center;gap:4px;padding:6px 0 4px;flex-shrink:0;background:var(--b2)"></div>
-  <div style="flex:1;padding:0 14px;min-height:0;display:flex;flex-direction:column">
+  <div style="flex:1;padding:0 14px 8px;min-height:0;display:flex;flex-direction:column">
     <div id="SW_WRAP" style="flex:1;position:relative;border-radius:18px;overflow:hidden;min-height:0"></div>
   </div>
-  <div id="SW_ACTS" style="flex-shrink:0;height:100px;min-height:100px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2);border-top:1px solid rgba(26,39,68,.06)">
+  <div id="SW_ACTS" style="flex-shrink:0;height:96px;min-height:96px;display:flex;align-items:center;justify-content:center;gap:44px;background:var(--b2)">
     <button onclick="doSwipe('left')" style="width:64px;height:64px;border-radius:50%;background:#fff;border:2px solid #E0D8D0;font-size:1.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.12);color:#888;-webkit-appearance:none;flex-shrink:0">&#10005;</button>
     <button onclick="doSwipe('right')" style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#C0392B,#E74C3C);border:none;font-size:1.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(192,57,43,.4);-webkit-appearance:none;flex-shrink:0">&#10084;&#65039;</button>
   </div>
@@ -1078,41 +1078,43 @@ function openProfile(p){
   var mediaStrip=g("pp-media"),dots=g("pp-dots");
   if(mediaStrip){
     var slides=[],dotHtml=[];
-    // Slide photo — gère base64 ET URL Cloudinary
+
+    // ── SLIDE 1 : VIDÉO EN PREMIER (visible dès l'ouverture) ──
+    var videoSrc = p.video && p.video.length > 5 ? p.video : '';
+    if(videoSrc){
+      var tradBadge = p.videoTranslated
+        ? '<div style="background:rgba(196,150,42,.25);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:8px">&#127760; Vid&eacute;o traduite FR&#8596;TH</div>'
+        : '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:.72rem;color:rgba(255,255,255,.6);font-weight:600;margin-bottom:8px">&#127916; Vid&eacute;o originale</div>';
+      slides.push('<div class="pp-media-slide video-slide">'
+        + tradBadge
+        + '<video src="'+videoSrc+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:240px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
+        + '<div style="color:rgba(255,255,255,.35);font-size:.65rem;margin-top:8px">&#8592; Glisse pour voir la photo</div>'
+        + '</div>');
+      dotHtml.push('<div class="pp-pdot vid on"></div>');
+    } else {
+      // Pas de vidéo — placeholder
+      slides.push('<div class="pp-media-slide video-slide">'
+        +'<div style="font-size:3rem;margin-bottom:12px">&#127916;</div>'
+        +'<div style="color:rgba(255,255,255,.7);font-size:.9rem;font-weight:600;margin-bottom:5px">Vid&eacute;o de pr&eacute;sentation</div>'
+        +'<div style="color:rgba(255,255,255,.3);font-size:.75rem">Bient&ocirc;t disponible &bull; traduction FR&#8596;TH</div>'
+        +'</div>');
+      dotHtml.push('<div class="pp-pdot vid on"></div>');
+    }
+
+    // ── SLIDE 2 : PHOTO (glisse depuis la vidéo) ──
     var photoSrc = p.photo || p.photoThumb || '';
     if(photoSrc){
       slides.push('<div class="pp-media-slide photo-slide" style="background-image:url(\''+photoSrc+'\')">'
         +(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')
-        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.65rem;padding:3px 9px;border-radius:10px">&#127916; &rarr;</div>'
         +'<div class="pp-photo-grd"></div></div>');
-      dotHtml.push('<div class="pp-pdot on"></div>');
     } else {
       slides.push('<div class="pp-media-slide photo-slide" style="background:'+p.bg+'">'
         +'<span style="font-size:80px">'+p.emoji+'</span>'
         +(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')
-        +'<div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;font-size:.65rem;padding:3px 9px;border-radius:10px">&#127916; &rarr;</div>'
         +'<div class="pp-photo-grd"></div></div>');
-      dotHtml.push('<div class="pp-pdot on"></div>');
     }
-    // Slide vidéo — toujours présente (player si video_url, placeholder sinon)
-    var videoSrc = p.video && p.video.length > 5 ? p.video : '';
-    if(videoSrc){
-      var tradBadge = p.videoTranslated
-        ? '<div style="background:rgba(196,150,42,.2);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:10px">&#127760; Vid&eacute;o traduite FR&#8596;TH</div>'
-        : '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 14px;font-size:.72rem;color:rgba(255,255,255,.6);font-weight:600;margin-bottom:10px">&#127916; Vid&eacute;o originale</div>';
-      slides.push('<div class="pp-media-slide video-slide">'
-        + tradBadge
-        + '<video src="'+videoSrc+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:230px;border-radius:12px;object-fit:contain;background:#000;display:block"></video>'
-        + '</div>');
-      dotHtml.push('<div class="pp-pdot vid"></div>');
-    } else {
-      slides.push('<div class="pp-media-slide video-slide">'
-        +'<div style="font-size:3.5rem;margin-bottom:14px">&#127916;</div>'
-        +'<div style="color:rgba(255,255,255,.8);font-size:.95rem;font-weight:600;margin-bottom:6px">Vid&eacute;o de pr&eacute;sentation</div>'
-        +'<div style="color:rgba(255,255,255,.35);font-size:.78rem">Bient&ocirc;t disponible avec traduction FR&#8596;TH</div>'
-        +'</div>');
-      dotHtml.push('<div class="pp-pdot vid"></div>');
-    }
+    dotHtml.push('<div class="pp-pdot"></div>');
+
     mediaStrip.innerHTML=slides.join('');
     if(dots){
       dots.innerHTML=dotHtml.join('');
@@ -1120,6 +1122,13 @@ function openProfile(p){
         var idx=Math.round(mediaStrip.scrollLeft/mediaStrip.offsetWidth);
         dots.querySelectorAll('.pp-pdot').forEach(function(d,i){d.classList.toggle('on',i===idx);});
       };
+      var startX=0,startY=0;
+      mediaStrip.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;startY=e.touches[0].clientY;},{passive:true});
+      mediaStrip.addEventListener('touchmove',function(e){
+        var dx=Math.abs(e.touches[0].clientX-startX);
+        var dy=Math.abs(e.touches[0].clientY-startY);
+        if(dx>dy&&dx>8){e.stopPropagation();}
+      },{passive:true});
     }
   }
   g("pp-name").textContent=p.name;
