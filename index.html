@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -137,11 +138,11 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-btn-like{background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff}
 .pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y}
 /* Galerie média : photos + vidéo scrollable horizontalement */
-.pp-media{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;touch-action:pan-x;height:300px;flex-shrink:0;scrollbar-width:none}
+.pp-media{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;touch-action:pan-x;width:100%;height:280px;flex-shrink:0;scrollbar-width:none;-webkit-scroll-snap-type:x mandatory}
 .pp-media::-webkit-scrollbar{display:none}
-.pp-media-slide{min-width:100%;height:300px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden;touch-action:pan-x}
+.pp-media-slide{min-width:100%;width:100%;height:280px;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden;-webkit-overflow-scrolling:touch}
 .pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center;background-repeat:no-repeat}
-.pp-media-slide.video-slide{background:#0a0a1a;flex-direction:column;gap:10px;padding:16px;text-align:center}
+.pp-media-slide.video-slide{background:#0a0a1a;flex-direction:column;gap:8px;padding:16px;text-align:center}
 .pp-photo-grd{position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
 .pp-online-badge{position:absolute;top:12px;left:12px;background:var(--gn);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:10px}
 .pp-media-dots{display:flex;justify-content:center;gap:5px;padding:6px 0;flex-shrink:0;background:#fff}
@@ -1080,6 +1081,7 @@ function openProfile(p){
 
     // ── SLIDE 1 : VIDÉO EN PREMIER (visible dès l'ouverture) ──
     var videoSrc = p.video && p.video.length > 5 ? p.video : '';
+    console.log('[LoveSiam] Profil:',p.name,'| video:',videoSrc?videoSrc.substring(0,60)+'...':'VIDE','| videoTranslated:',p.videoTranslated);
     if(videoSrc){
       var tradBadge = p.videoTranslated
         ? '<div style="background:rgba(196,150,42,.25);border:1px solid var(--g);border-radius:20px;padding:5px 14px;font-size:.72rem;color:var(--gl);font-weight:700;margin-bottom:8px">&#127760; Vid&eacute;o traduite FR&#8596;TH</div>'
@@ -1146,6 +1148,11 @@ function openProfile(p){
     else{likeBtn.innerHTML="&#9825;";likeBtn.style.background="rgba(192,57,43,.15)";}
   }
   var pp=g("PP");pp.classList.add("on");pp.style.display="flex";
+  // Forcer recalcul du layout pour que pp-media ait la bonne largeur
+  setTimeout(function(){
+    var ms=g("pp-media");
+    if(ms){ms.style.display='none';ms.offsetHeight;ms.style.display='flex';}
+  },50);
 }
 
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
