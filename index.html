@@ -138,11 +138,11 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-btn-like{background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff}
 .pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y}
 /* Galerie média : photos + vidéo scrollable horizontalement */
-.pp-media{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;height:280px;flex-shrink:0;scrollbar-width:none}
+.pp-media{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;height:340px;flex-shrink:0;scrollbar-width:none}
 .pp-media::-webkit-scrollbar{display:none}
 .pp-media-slide{min-width:100%;height:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden}
-.pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center;background-repeat:no-repeat}
-.pp-media-slide.video-slide{background:#111;flex-direction:column;gap:8px}
+.pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center top;background-repeat:no-repeat}
+.pp-media-slide.video-slide{background:#000;flex-direction:column;gap:6px;padding:8px}
 .pp-photo-grd{position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
 .pp-online-badge{position:absolute;top:12px;left:12px;background:var(--gn);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:10px}
 .pp-media-dots{display:flex;justify-content:center;gap:5px;padding:6px 0;flex-shrink:0;background:#fff}
@@ -1049,13 +1049,20 @@ function openProfile(p){
       var tradBadge=p.videoTranslated
         ?'<div style="background:rgba(196,150,42,.15);border:1px solid var(--g);border-radius:20px;padding:4px 14px;font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:8px">&#127760; Vid\xE9o traduite FR&#8596;TH</div>'
         :'<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:8px">&#127916; Vid\xE9o originale</div>';
+      var isThaiProfile=(genderView==='femme'||p.gender==='femme');
+      var tradBtn=isThaiProfile
+        ?'&#127467;&#127479; Voir en fran\xe7ais'
+        :'&#127481;&#127469; Voir en tha\xef';
+      var tradTitle=isThaiProfile
+        ?'&#127467;&#127479; Traduction FR'
+        :'&#127481;&#127469; Traduction TH';
       slides.push(
         '<div class="pp-media-slide video-slide" id="'+vidId+'">'
         +tradBadge
-        +'<video src="'+p.video+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;max-height:220px;border-radius:10px;object-fit:cover;background:#000"></video>'
-        +'<button onclick="transcribeVideo(\''+p.video+'\',\''+vidId+'\')" style="margin-top:8px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:20px;padding:6px 16px;font-size:.75rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans)">&#127760; Transcrire &amp; Traduire</button>'
+        +'<video src="'+p.video+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;height:290px;border-radius:10px;object-fit:contain;background:#000"></video>'
+        +'<button onclick="transcribeVideo(\''+p.video+'\',\''+vidId+'\','+isThaiProfile+')" style="margin-top:4px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:20px;padding:7px 18px;font-size:.78rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans);white-space:nowrap">'+tradBtn+'</button>'
         +'<div id="tr_'+vidId+'" style="margin-top:8px;text-align:left;display:none">'
-        +'<div style="font-size:.68rem;color:var(--g);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">&#127467;&#127479; Transcription FR</div>'
+        +'<div style="font-size:.68rem;color:var(--g);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">'+tradTitle+'</div>'
         +'<div id="tr_txt_'+vidId+'" style="font-size:.82rem;color:rgba(255,255,255,.85);line-height:1.6;background:rgba(255,255,255,.06);padding:10px;border-radius:10px"></div>'
         +'</div>'
         +'<div style="color:rgba(255,255,255,.3);font-size:.62rem;margin-top:6px">&#8592; Glisse pour voir la photo</div>'
@@ -1100,83 +1107,47 @@ function openProfile(p){
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
 
 // Transcription + traduction vidéo via OpenAI Whisper
-function transcribeVideo(videoUrl, vidId){
+// Traduction via Supabase Edge Function transcribe-video
+function transcribeVideo(videoUrl, vidId, isThaiProfile){
   var btn=document.querySelector('#'+vidId+' button');
   var resDiv=g('tr_'+vidId);
   var txtDiv=g('tr_txt_'+vidId);
   if(!btn||!resDiv||!txtDiv)return;
-  btn.textContent='\u23f3 T\xe9l\xe9chargement vid\xe9o...';
+  var targetLang=isThaiProfile?'fran\xe7ais':'tha\xef';
+  btn.textContent='\u23f3 Traduction en cours...';
   btn.disabled=true;btn.style.opacity='.6';
 
-  // Utiliser un proxy CORS ou fetch direct
-  fetch(videoUrl,{mode:'cors'})
-    .then(function(r){
-      if(!r.ok)throw new Error('CORS bloqu\xe9 - statut '+r.status);
-      return r.blob();
-    })
-    .then(function(blob){
-      btn.textContent='\u23f3 Transcription Whisper...';
-      var fd=new FormData();
-      // Détecter le type de fichier
-      var ext=videoUrl.split('?')[0].split('.').pop().toLowerCase();
-      var mime=blob.type||('video/'+(ext==='webm'?'webm':ext==='mov'?'quicktime':'mp4'));
-      fd.append('file',new File([blob],'audio.'+ext,{type:mime}));
-      fd.append('model','whisper-1');
-      fd.append('response_format','text');
-      return fetch('https://api.openai.com/v1/audio/transcriptions',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+OPENAI_KEY},
-        body:fd
-      });
-    })
-    .then(function(r){return r.text();})
-    .then(function(transcrit){
-      transcrit=(transcrit||'').trim();
-      if(!transcrit||transcrit.length<2){
-        txtDiv.innerHTML='<em style="color:rgba(255,255,255,.5)">Aucun texte d\xe9tect\xe9.</em>';
-        resDiv.style.display='block';
-        btn.textContent='\ud83c\udf10 Transcrire & Traduire';
-        btn.disabled=false;btn.style.opacity='1';
-        return;
-      }
-      btn.textContent='\u23f3 Traduction FR...';
-      // Détecter si déjà en français
-      var hasThai=/[\u0E00-\u0E7F]/.test(transcrit);
-      var toLang=hasThai?'fran\xe7ais':'fran\xe7ais';
-      return fetch('https://api.openai.com/v1/chat/completions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},
-        body:JSON.stringify({
-          model:'gpt-4o-mini',max_tokens:500,
-          messages:[
-            {role:'system',content:'Tu es traducteur expert. Traduis en fran\xe7ais fluide et naturel. R\xe9ponds UNIQUEMENT avec la traduction.'},
-            {role:'user',content:transcrit}
-          ]
-        })
-      })
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var trad=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
-        txtDiv.innerHTML=(trad?trad.trim():transcrit)
-          +'<div style="color:rgba(255,255,255,.35);font-size:.65rem;margin-top:6px">Original: '+transcrit.substring(0,60)+(transcrit.length>60?'...':'')+'</div>';
-        resDiv.style.display='block';
-        btn.textContent='\u2705 Traduit';
-        btn.disabled=false;btn.style.opacity='1';
-      });
-    })
-    .catch(function(e){
-      // Si CORS bloqué, afficher message explicatif
-      var msg=e.message||'';
-      if(msg.indexOf('CORS')>=0||msg.indexOf('fetch')>=0||msg.indexOf('Failed')>=0){
-        txtDiv.innerHTML='<em style="color:rgba(255,200,0,.8)">\u26a0\ufe0f La vid\xe9o Cloudinary bloque le t\xe9l\xe9chargement direct.<br>Upload tes vid\xe9os via le formulaire d\'inscription pour activer la transcription.</em>';
-      } else {
-        txtDiv.textContent='Erreur: '+msg;
-      }
+  fetch('https://sbglyelgqceydofgllop.supabase.co/functions/v1/transcribe-video',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c'
+    },
+    body:JSON.stringify({videoUrl:videoUrl,targetLang:targetLang})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.translation){
+      var flag=isThaiProfile?'\ud83c\uddeb\ud83c\uddf7':'&#127481;&#127469;';
+      txtDiv.innerHTML='<div style="font-size:.85rem;color:rgba(255,255,255,.9);line-height:1.6">'+d.translation+'</div>'
+        +(d.transcription?'<div style="color:rgba(255,255,255,.3);font-size:.65rem;margin-top:6px">Original : '+d.transcription.substring(0,100)+(d.transcription.length>100?'...':'')+'</div>':'');
       resDiv.style.display='block';
-      btn.textContent='\ud83c\udf10 Transcrire & Traduire';
-      btn.disabled=false;btn.style.opacity='1';
-    });
+      btn.textContent='\u2705 Traduit';
+    } else if(d.error){
+      txtDiv.innerHTML='<em style="color:rgba(255,100,100,.8)">Erreur : '+d.error+'</em>';
+      resDiv.style.display='block';
+      btn.textContent=isThaiProfile?'\ud83c\uddeb\ud83c\uddf7 Voir en fran\xe7ais':'\ud83c\uddf9\ud83c\udded Voir en tha\xef';
+    }
+    btn.disabled=false;btn.style.opacity='1';
+  })
+  .catch(function(e){
+    txtDiv.innerHTML='<em style="color:rgba(255,100,100,.8)">Erreur connexion</em>';
+    resDiv.style.display='block';
+    btn.textContent=isThaiProfile?'\ud83c\uddeb\ud83c\uddf7 Voir en fran\xe7ais':'\ud83c\uddf9\ud83c\udded Voir en tha\xef';
+    btn.disabled=false;btn.style.opacity='1';
+  });
 }
+
 function likeFromProfileSwipe(){
   if(!currentPP)return;var p=currentPP;
   var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}
