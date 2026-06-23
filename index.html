@@ -920,15 +920,23 @@ function renderSwipe(){
     if(p.online)badges+='<span style="background:rgba(39,174,96,.9);color:#fff;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:12px;margin-right:4px">&#9679; En ligne</span>';
     if(p.isNew)badges+='<span style="background:rgba(196,150,42,.9);color:#fff;font-size:.65rem;font-weight:700;padding:3px 8px;border-radius:12px;margin-right:4px">&#10024; Nouveau</span>';
     badges+='<span style="background:rgba(0,0,0,.45);color:#fff;font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:12px">'+enLabel(p.en)+'</span>';
-    // Miniature swipe : thumbnail auto depuis vidéo Cloudinary
+    // Miniature swipe : thumb Cloudinary OU photo base64 via <img>
     var thumbUrl=p.thumb||'';
-    var swBg=thumbUrl?'background:url("'+thumbUrl+'") center/cover no-repeat':'background:'+p.bg;
-    card.innerHTML='<div class="swc-photo" style="'+swBg+';height:100%">'+(thumbUrl?'':p.emoji)
+    var swPhoto=(!thumbUrl&&p.photo&&p.photo.length>10)?p.photo:'';
+    var swMediaHtml='';
+    if(thumbUrl){
+      swMediaHtml='<img src="'+thumbUrl+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">';
+    } else if(swPhoto){
+      swMediaHtml='<img src="'+swPhoto+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">';
+    } else {
+      swMediaHtml='<div style="position:absolute;inset:0;background:'+p.bg+';display:flex;align-items:center;justify-content:center;font-size:5rem">'+p.emoji+'</div>';
+    }
+    card.innerHTML='<div style="position:absolute;inset:0;overflow:hidden;border-radius:18px">'+swMediaHtml
       +'<div class="sw-badge-like" id="sl'+i+'">LIKE</div>'
       +'<div class="sw-badge-nope" id="sn'+i+'">PASSE</div>'
       +'<div style="position:absolute;bottom:0;left:0;right:0;padding:12px 14px 14px;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);">'
       +'<div style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:2px">'+p.name+', '+p.age+'</div>'
-      +'<div style="font-size:.8rem;color:rgba(255,255,255,.8);margin-bottom:7px">'+p.ville+' &middot; '+p.taille+' &middot; '+p.poids+'</div>'
+      +'<div style="font-size:.8rem;color:rgba(255,255,255,.8);margin-bottom:7px">'+p.ville+(p.taille?' &middot; '+p.taille:'')+(p.poids?' &middot; '+p.poids:'')+'</div>'
       +'<div>'+badges+'</div>'
       +'</div></div>';
     if(isTop){(function(card,idx){
@@ -973,13 +981,21 @@ function renderGrid(tab){
   list.forEach(function(p){
     var liked=likedSet.has(p.id),gc=document.createElement("div");gc.className="gc";
     var enFlag="&#127468;&#127463;";
-    // Miniature grille : thumbnail auto depuis vidéo Cloudinary
+    // Miniature : thumb Cloudinary OU photo base64 via <img> tag
     var gcThumb=p.thumb||'';
-    var gcBg=gcThumb?'background:url("'+gcThumb+'") center/cover no-repeat':'background:'+p.bg;
-    gc.innerHTML='<div class="gc-bg" style="'+gcBg+'">'+(gcThumb?'':'<span>'+p.emoji+'</span>')+'</div>'
+    var gcPhoto=(!gcThumb&&p.photo&&p.photo.length>10)?p.photo:'';
+    var gcMediaHtml='';
+    if(gcThumb){
+      gcMediaHtml='<img src="'+gcThumb+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">';
+    } else if(gcPhoto){
+      gcMediaHtml='<img src="'+gcPhoto+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">';
+    } else {
+      gcMediaHtml='<div style="position:absolute;inset:0;background:'+p.bg+';display:flex;align-items:center;justify-content:center;font-size:3rem">'+p.emoji+'</div>';
+    }
+    gc.innerHTML=gcMediaHtml
       +'<div class="gc-grd"></div>'
       +(p.isNew?'<div class="gc-new">NEW</div>':'')
-      +'<div class="gc-info">'+(p.online?'<span class="gc-dot"></span>':'')+'<div class="gc-name">'+p.name+', '+p.age+'</div><div class="gc-sub">'+p.ville+' &middot; '+enFlag+' '+p.en+'</div></div>'
+      +'<div class="gc-info">'+(p.online?'<span class="gc-dot"></span>':'')+'<div class="gc-name">'+p.name+', '+p.age+'</div><div class="gc-sub">'+p.ville+(p.ville?' &middot; ':'')+enFlag+' '+p.en+'</div></div>'
       +'<div class="gc-act"><button class="gc-hbtn'+(liked?' liked':'')+'\">'+(liked?'&#10084;':'&#9825;')+'</button></div>';
     gc.querySelector(".gc-hbtn").onclick=function(e){
       e.stopPropagation();
@@ -1089,20 +1105,23 @@ function transcribeVideo(videoUrl, vidId){
   var resDiv=g('tr_'+vidId);
   var txtDiv=g('tr_txt_'+vidId);
   if(!btn||!resDiv||!txtDiv)return;
+  btn.textContent='\u23f3 T\xe9l\xe9chargement vid\xe9o...';
+  btn.disabled=true;btn.style.opacity='.6';
 
-  btn.textContent='⏳ Transcription en cours...';
-  btn.disabled=true;
-  btn.style.opacity='.6';
-
-  // Étape 1 : télécharger la vidéo en blob
-  fetch(videoUrl)
-    .then(function(r){return r.blob();})
+  // Utiliser un proxy CORS ou fetch direct
+  fetch(videoUrl,{mode:'cors'})
+    .then(function(r){
+      if(!r.ok)throw new Error('CORS bloqu\xe9 - statut '+r.status);
+      return r.blob();
+    })
     .then(function(blob){
-      // Étape 2 : envoyer à Whisper
+      btn.textContent='\u23f3 Transcription Whisper...';
       var fd=new FormData();
-      fd.append('file',new File([blob],'video.mp4',{type:blob.type||'video/mp4'}));
+      // Détecter le type de fichier
+      var ext=videoUrl.split('?')[0].split('.').pop().toLowerCase();
+      var mime=blob.type||('video/'+(ext==='webm'?'webm':ext==='mov'?'quicktime':'mp4'));
+      fd.append('file',new File([blob],'audio.'+ext,{type:mime}));
       fd.append('model','whisper-1');
-      fd.append('language','th'); // thaï par défaut, Whisper auto-détecte
       fd.append('response_format','text');
       return fetch('https://api.openai.com/v1/audio/transcriptions',{
         method:'POST',
@@ -1112,45 +1131,49 @@ function transcribeVideo(videoUrl, vidId){
     })
     .then(function(r){return r.text();})
     .then(function(transcrit){
-      if(!transcrit||transcrit.trim().length<2){
-        txtDiv.textContent='Aucun texte détecté dans la vidéo.';
+      transcrit=(transcrit||'').trim();
+      if(!transcrit||transcrit.length<2){
+        txtDiv.innerHTML='<em style="color:rgba(255,255,255,.5)">Aucun texte d\xe9tect\xe9.</em>';
         resDiv.style.display='block';
-        btn.textContent='🌐 Transcrire & Traduire';
+        btn.textContent='\ud83c\udf10 Transcrire & Traduire';
         btn.disabled=false;btn.style.opacity='1';
         return;
       }
-      // Étape 3 : traduire en français via GPT
-      btn.textContent='⏳ Traduction FR...';
+      btn.textContent='\u23f3 Traduction FR...';
+      // Détecter si déjà en français
+      var hasThai=/[\u0E00-\u0E7F]/.test(transcrit);
+      var toLang=hasThai?'fran\xe7ais':'fran\xe7ais';
       return fetch('https://api.openai.com/v1/chat/completions',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+OPENAI_KEY},
         body:JSON.stringify({
-          model:'gpt-4o-mini',
-          max_tokens:500,
+          model:'gpt-4o-mini',max_tokens:500,
           messages:[
-            {role:'system',content:'Tu es un traducteur expert thaï-français. Traduis le texte en français naturel et fluide. Réponds UNIQUEMENT avec la traduction.'},
+            {role:'system',content:'Tu es traducteur expert. Traduis en fran\xe7ais fluide et naturel. R\xe9ponds UNIQUEMENT avec la traduction.'},
             {role:'user',content:transcrit}
           ]
         })
       })
       .then(function(r){return r.json();})
-      .then(function(data){
-        var trad=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
-        if(trad){
-          txtDiv.innerHTML='<div style="color:rgba(255,255,255,.5);font-size:.7rem;margin-bottom:4px">Original : '+transcrit.substring(0,80)+'...</div>'+trad.trim();
-        } else {
-          txtDiv.textContent=transcrit;
-        }
+      .then(function(d){
+        var trad=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;
+        txtDiv.innerHTML=(trad?trad.trim():transcrit)
+          +'<div style="color:rgba(255,255,255,.35);font-size:.65rem;margin-top:6px">Original: '+transcrit.substring(0,60)+(transcrit.length>60?'...':'')+'</div>';
         resDiv.style.display='block';
-        btn.textContent='✅ Traduit';
+        btn.textContent='\u2705 Traduit';
         btn.disabled=false;btn.style.opacity='1';
       });
     })
     .catch(function(e){
-      console.log('Erreur transcription:',e);
-      txtDiv.textContent='Erreur : '+e.message;
+      // Si CORS bloqué, afficher message explicatif
+      var msg=e.message||'';
+      if(msg.indexOf('CORS')>=0||msg.indexOf('fetch')>=0||msg.indexOf('Failed')>=0){
+        txtDiv.innerHTML='<em style="color:rgba(255,200,0,.8)">\u26a0\ufe0f La vid\xe9o Cloudinary bloque le t\xe9l\xe9chargement direct.<br>Upload tes vid\xe9os via le formulaire d\'inscription pour activer la transcription.</em>';
+      } else {
+        txtDiv.textContent='Erreur: '+msg;
+      }
       resDiv.style.display='block';
-      btn.textContent='🌐 Réessayer';
+      btn.textContent='\ud83c\udf10 Transcrire & Traduire';
       btn.disabled=false;btn.style.opacity='1';
     });
 }
