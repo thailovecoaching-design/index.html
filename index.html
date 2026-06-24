@@ -1354,7 +1354,7 @@ function setLang(lang){
 
 // ── QUESTIONNAIRE (simplifié mais fonctionnel) ──
 var QS=0,QA={},QV=false,QD=false,QST=null,QMR=null,QCH=[],QRT=null,QRS=0;
-var QT_STEPS=8;
+var QT_STEPS=9;
 
 function show(m){toast(m);}
 function qFieldErr(el){if(!el)return;el.style.border='2px solid #C0392B';}
@@ -1365,8 +1365,9 @@ function qNextStep(){
   if(QS===0){if(!QA.g){show('\u26A0 Veuillez choisir votre profil');return;}QS++;bQ();}
   else if(QS===1){qNI();}
   else if(QS===2){var d=g('QDESC');var desc=(d?d.value.trim():'');if(!desc){qFieldErr(d);return;}qFieldOk(d);QA.desc=desc;QS++;bQ();}
-  else if(QS===3){QS++;bQ();}
-  else if(QS===4){if(!QA.looking){show('\u26A0 Veuillez choisir ce que vous recherchez');return;}QS++;bQ();}
+  else if(QS===3){QS++;bQ();} // photos : optionnel
+  else if(QS===4){QS++;bQ();} // tranches âge : optionnel
+  else if(QS===5){if(!QA.looking){show('\u26A0 Veuillez choisir ce que vous recherchez');return;}QS++;bQ();}
   else{QS=Math.min(QS+1,QT_STEPS-1);bQ();}
 }
 function qNI(){
@@ -1398,22 +1399,42 @@ function qSub(){
   var qwrap=g('QB');
   if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Dossier bien re\xE7u.<br>Patrick vous contactera sous 48h<br>\xE0 <strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
   QD=true;
-  // Upload video Cloudinary si presente, puis envoi Supabase
-  function doSendSupa(videoUrl){
-    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||''});
+  // Upload photo + video Cloudinary, puis envoi Supabase
+  function doSendSupa(videoUrl,photoUrl){
+    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||'',photo_url:photoUrl||''});
     var xhr=new XMLHttpRequest();xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('apikey',SB_KEY);xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);xhr.setRequestHeader('Prefer','return=minimal');xhr.timeout=15000;xhr.send(payload);
   }
-  var vidSource=QA.vidBlob||QA.vidFile||null;
-  if(vidSource){
-    var fd2=new FormData();
-    var vf=vidSource instanceof File?vidSource:new File([vidSource],'video.mp4',{type:'video/mp4'});
-    fd2.append('file',vf);fd2.append('upload_preset','lovesiam_videos');
-    var xhrV=new XMLHttpRequest();xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);xhrV.timeout=120000;
-    xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu);};
-    xhrV.onerror=function(){doSendSupa('');};xhrV.ontimeout=function(){doSendSupa('');};
-    xhrV.send(fd2);
+  function uploadToCloudinary(blob,preset,cb){
+    var fd=new FormData();fd.append('file',blob);fd.append('upload_preset',preset);
+    var x=new XMLHttpRequest();x.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',true);x.timeout=60000;
+    x.onreadystatechange=function(){if(x.readyState!==4)return;var url='';try{var r=JSON.parse(x.responseText);url=r.secure_url||'';}catch(e){}cb(url);};
+    x.onerror=function(){cb('');};x.ontimeout=function(){cb('');};x.send(fd);
+  }
+  // Étape 1 : upload photo si présente
+  var photo0=Array.isArray(QA.photos)&&QA.photos[0]?QA.photos[0]:null;
+  function afterPhoto(photoUrl){
+    // Étape 2 : upload vidéo si présente
+    var vidSource=QA.vidBlob||QA.vidFile||null;
+    if(vidSource){
+      var fd2=new FormData();
+      var vf=vidSource instanceof File?vidSource:new File([vidSource],'video.mp4',{type:'video/mp4'});
+      fd2.append('file',vf);fd2.append('upload_preset','lovesiam_videos');
+      var xhrV=new XMLHttpRequest();xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);xhrV.timeout=120000;
+      xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu,photoUrl);};
+      xhrV.onerror=function(){doSendSupa('',photoUrl);};xhrV.ontimeout=function(){doSendSupa('',photoUrl);};
+      xhrV.send(fd2);
+    }else{
+      setTimeout(function(){doSendSupa('',photoUrl);},200);
+    }
+  }
+  if(photo0){
+    // Convertir base64 en Blob
+    var arr=photo0.split(','),mime=(arr[0].match(/:(.*?);/)||[,'image/jpeg'])[1],bstr=atob(arr[1]),n2=bstr.length,u8=new Uint8Array(n2);
+    for(var i2=0;i2<n2;i2++)u8[i2]=bstr.charCodeAt(i2);
+    var imgBlob=new Blob([u8],{type:mime});
+    uploadToCloudinary(imgBlob,'lovesiam_videos',afterPhoto);
   }else{
-    setTimeout(function(){doSendSupa('');},200);
+    afterPhoto('');
   }
   setTimeout(function(){
     var msg='Inscription LoveSiam\nPr\xE9nom: '+entry.name+'\nEmail: '+entry.email+'\nGenre: '+entry.gender+'\nVille: '+entry.city+'\nRecherche: '+entry.looking;
@@ -1512,6 +1533,21 @@ function bQ(){
      +'<div class="fg"><textarea class="fa" id="QDESC" rows="5" maxlength="500" oninput="updateBioCount(this)">'+(QA.desc||'')+'</textarea><div id="BIO_COUNT" style="text-align:right;font-size:.72rem;color:var(--td);margin-top:3px">'+(QA.desc?QA.desc.length:0)+'/500</div></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===3){
+    // STEP PHOTOS
+    h='<div class="qe">&#10022; \xC9tape 4/'+QT_STEPS+'</div><div class="qt">Vos <em>photos</em></div><p class="qs">Ajoutez jusqu\'\xE0 3 photos. Optionnel mais recommand\xE9.</p>'
+     +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">'
+     +'<div id="PH1" style="aspect-ratio:2/3;border-radius:10px;border:2px dashed rgba(196,150,42,.3);background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;position:relative;overflow:hidden"><div>&#128247;</div></div>'
+     +'<div id="PH2" style="aspect-ratio:2/3;border-radius:10px;border:2px dashed rgba(196,150,42,.3);background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;position:relative;overflow:hidden"><div>&#128247;</div></div>'
+     +'<div id="PH3" style="aspect-ratio:2/3;border-radius:10px;border:2px dashed rgba(196,150,42,.3);background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;cursor:pointer;position:relative;overflow:hidden"><div>&#128247;</div></div>'
+     +'</div>'
+     +'<div id="PP1" style="display:none;margin-bottom:4px"></div>'
+     +'<div id="PP2" style="display:none;margin-bottom:4px"></div>'
+     +'<div id="PP3" style="display:none;margin-bottom:4px"></div>'
+     +'<input type="file" id="PI1" accept="image/*" style="display:none">'
+     +'<input type="file" id="PI2" accept="image/*" style="display:none">'
+     +'<input type="file" id="PI3" accept="image/*" style="display:none">'
+     +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
+  }else if(QS===5){
     var ageRanges=['18\u201325','25\u201330','30\u201335','35\u201340','40\u201350','50\u201360','60+'];var ageHtml='';
     for(var ai=0;ai<ageRanges.length;ai++){var av=ageRanges[ai];ageHtml+='<button class="pi2 '+((QA.sk||[]).includes(av)?'sl':'')+'" data-tg="sk:'+av+'">'+av+'</button>';}
     h='<div class="qe">&#10022; \xC9tape 4/'+QT_STEPS+'</div><div class="qt">Tranche d\'\xE2ge souhait\xE9e</div><div class="pl">'+ageHtml+'</div>'
@@ -1519,14 +1555,14 @@ function bQ(){
   }else if(QS===4){
     var relOpts=[{ic:'&#128141;',lb:'Une relation s\xE9rieuse',vl:'serieux'},{ic:'&#128145;',lb:'Le mariage',vl:'mariage'},{ic:'&#127807;',lb:'Ouvert(e) \xE0 la rencontre',vl:'explorer'},{ic:'&#129309;',lb:'Se faire des amis',vl:'amis'}];var relHtml='';
     for(var ri=0;ri<relOpts.length;ri++){var ro=relOpts[ri];relHtml+='<div class="cd '+(QA.looking===ro.vl?'sl':'')+'" data-cd="looking:'+ro.vl+'"><div class="ci2">'+ro.ic+'</div><div><div class="cl">'+ro.lb+'</div></div><div class="ck">'+(QA.looking===ro.vl?'\u2713':'')+'</div></div>';}
-    h='<div class="qe">&#10022; \xC9tape 5/'+QT_STEPS+'</div><div class="qt">Ce que vous <em>recherchez</em> <span style="color:#C0392B">*</span></div><div class="cs2">'+relHtml+'</div>'
-     +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
-  }else if(QS===5){
-    var famOpts=[{ic:'&#129489;',lb:'C\xE9libataire sans enfant',vl:'single'},{ic:'&#128118;',lb:'C\xE9libataire, enfant(s) avec moi',vl:'kids_with'},{ic:'&#127968;',lb:'C\xE9libataire, enfant(s) ailleurs',vl:'kids_away'}];var famHtml='';
-    for(var fi=0;fi<famOpts.length;fi++){var fo=famOpts[fi];famHtml+='<div class="cd '+(QA.fam===fo.vl?'sl':'')+'" data-cd="fam:'+fo.vl+'"><div class="ci2">'+fo.ic+'</div><div><div class="cl">'+fo.lb+'</div></div><div class="ck">'+(QA.fam===fo.vl?'\u2713':'')+'</div></div>';}
-    h='<div class="qe">&#10022; \xC9tape 6/'+QT_STEPS+'</div><div class="qt">Votre <em>situation</em> familiale</div><div class="cs2">'+famHtml+'</div>'
+    h='<div class="qe">&#10022; \xC9tape 6/'+QT_STEPS+'</div><div class="qt">Ce que vous <em>recherchez</em> <span style="color:#C0392B">*</span></div><div class="cs2">'+relHtml+'</div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===6){
+    var famOpts=[{ic:'&#129489;',lb:'C\xE9libataire sans enfant',vl:'single'},{ic:'&#128118;',lb:'C\xE9libataire, enfant(s) avec moi',vl:'kids_with'},{ic:'&#127968;',lb:'C\xE9libataire, enfant(s) ailleurs',vl:'kids_away'}];var famHtml='';
+    for(var fi=0;fi<famOpts.length;fi++){var fo=famOpts[fi];famHtml+='<div class="cd '+(QA.fam===fo.vl?'sl':'')+'" data-cd="fam:'+fo.vl+'"><div class="ci2">'+fo.ic+'</div><div><div class="cl">'+fo.lb+'</div></div><div class="ck">'+(QA.fam===fo.vl?'\u2713':'')+'</div></div>';}
+    h='<div class="qe">&#10022; \xC9tape 7/'+QT_STEPS+'</div><div class="qt">Votre <em>situation</em> familiale</div><div class="cs2">'+famHtml+'</div>'
+     +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
+  }else if(QS===7){
     h='<div class="qe">&#10022; \xC9tape 7/'+QT_STEPS+'</div><div class="qt">Votre <em>vid\xE9o</em></div><p class="qs">Publi\xE9e avec traduction FR\u2194TH apr\xE8s validation.</p>'
      +'<div style="width:100%;max-width:280px;margin:0 auto 10px;aspect-ratio:9/16;max-height:340px;background:var(--nv);border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center" id="QCA"><div class="cp" id="QCP" style="color:rgba(255,255,255,.4);text-align:center;padding:13px;line-height:1.58">Appuyez sur "Activer la cam\xE9ra"</div><video id="QCV" style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)" muted playsinline autoplay></video><video id="QCR" style="display:none;width:100%;height:100%;object-fit:cover" controls></video><div class="rb" id="QRB" style="display:none"><div class="rd2"></div><span id="QRL">REC 0s</span></div><div style="color:var(--rd);font-size:.73rem;text-align:center;padding:12px;display:none" id="QCE"></div></div>'
      +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
@@ -1539,12 +1575,12 @@ function bQ(){
      +'<div id="QUS" style="display:none;padding:8px 11px;border-radius:8px;margin-bottom:8px;background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.18);font-size:.73rem;color:var(--gn)"></div>'
      +'<div style="text-align:center;margin-bottom:8px"><span style="font-size:.7rem;color:var(--td);cursor:pointer;text-decoration:underline" id="QSK">Passer \u2192 vid\xE9o plus tard</span></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
-  }else if(QS===7){
+  }else if(QS===8){
     // Récapitulatif
     var genLabel=QA.g==='h'?'&#128104; Homme fran\xE7ais':'&#128105; Femme tha\xEFlandaise';
     var lookMap={serieux:'Relation s\xE9rieuse',mariage:'Mariage',explorer:'Ouvert(e)',amis:'Amis'};
     var famMap={single:'C\xE9libataire sans enfant',kids_with:'Avec enfant(s)',kids_away:'Enfant(s) ailleurs'};
-    h='<div class="qe">&#10022; \xC9tape 8/'+QT_STEPS+'</div><div class="qt">\xC9tape finale : <em>contact</em></div>'
+    h='<div class="qe">&#10022; \xC9tape 9/'+QT_STEPS+'</div><div class="qt">\xC9tape finale : <em>contact</em></div>'
      +'<div style="background:var(--b2);border-radius:12px;padding:14px;margin-bottom:14px;font-size:.84rem">'
      +'<div style="font-weight:700;color:var(--g);margin-bottom:8px">&#10022; R\xE9capitulatif</div>'
      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
