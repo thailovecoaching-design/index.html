@@ -1398,10 +1398,23 @@ function qSub(){
   var qwrap=g('QB');
   if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Dossier bien re\xE7u.<br>Patrick vous contactera sous 48h<br>\xE0 <strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
   QD=true;
-  setTimeout(function(){
-    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.family});
+  // Upload video Cloudinary si presente, puis envoi Supabase
+  function doSendSupa(videoUrl){
+    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||''});
     var xhr=new XMLHttpRequest();xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('apikey',SB_KEY);xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);xhr.setRequestHeader('Prefer','return=minimal');xhr.timeout=15000;xhr.send(payload);
-  },200);
+  }
+  var vidSource=QA.vidBlob||QA.vidFile||null;
+  if(vidSource){
+    var fd2=new FormData();
+    var vf=vidSource instanceof File?vidSource:new File([vidSource],'video.mp4',{type:'video/mp4'});
+    fd2.append('file',vf);fd2.append('upload_preset','lovesiam_videos');
+    var xhrV=new XMLHttpRequest();xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);xhrV.timeout=120000;
+    xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu);};
+    xhrV.onerror=function(){doSendSupa('');};xhrV.ontimeout=function(){doSendSupa('');};
+    xhrV.send(fd2);
+  }else{
+    setTimeout(function(){doSendSupa('');},200);
+  }
   setTimeout(function(){
     var msg='Inscription LoveSiam\nPr\xE9nom: '+entry.name+'\nEmail: '+entry.email+'\nGenre: '+entry.gender+'\nVille: '+entry.city+'\nRecherche: '+entry.looking;
     var xhr2=new XMLHttpRequest();xhr2.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);xhr2.setRequestHeader('Content-Type','application/json');xhr2.timeout=10000;
@@ -1515,7 +1528,7 @@ function bQ(){
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===6){
     h='<div class="qe">&#10022; \xC9tape 7/'+QT_STEPS+'</div><div class="qt">Votre <em>vid\xE9o</em></div><p class="qs">Publi\xE9e avec traduction FR\u2194TH apr\xE8s validation.</p>'
-     +'<div class="ca" id="QCA"><div class="cp" id="QCP">Appuyez sur "Activer la cam\xE9ra"</div><video id="QCV" style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)" muted playsinline autoplay></video><video id="QCR" style="display:none;width:100%;height:100%;object-fit:cover" controls></video><div class="rb" id="QRB" style="display:none"><div class="rd2"></div><span id="QRL">REC 0s</span></div><div style="color:var(--rd);font-size:.73rem;text-align:center;padding:12px;display:none" id="QCE"></div></div>'
+     +'<div style="width:100%;max-width:280px;margin:0 auto 10px;aspect-ratio:9/16;max-height:340px;background:var(--nv);border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center" id="QCA"><div class="cp" id="QCP" style="color:rgba(255,255,255,.4);text-align:center;padding:13px;line-height:1.58">Appuyez sur "Activer la cam\xE9ra"</div><video id="QCV" style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)" muted playsinline autoplay></video><video id="QCR" style="display:none;width:100%;height:100%;object-fit:cover" controls></video><div class="rb" id="QRB" style="display:none"><div class="rd2"></div><span id="QRL">REC 0s</span></div><div style="color:var(--rd);font-size:.73rem;text-align:center;padding:12px;display:none" id="QCE"></div></div>'
      +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
      +'<button id="QBA" class="qx qf">&#128247; Activer la cam\xE9ra</button>'
      +'<button id="QBR2" class="qx qf" style="display:none;background:linear-gradient(135deg,var(--rd),#E74C3C)">&#9210;&#65039; D\xE9marrer</button>'
@@ -1527,8 +1540,25 @@ function bQ(){
      +'<div style="text-align:center;margin-bottom:8px"><span style="font-size:.7rem;color:var(--td);cursor:pointer;text-decoration:underline" id="QSK">Passer \u2192 vid\xE9o plus tard</span></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===7){
-    h='<div class="qe">&#10022; \xC9tape 8/'+QT_STEPS+'</div><div class="qt">Votre <em>contact</em></div><p class="qs">Vous serez contact\xE9 \xE0 cette adresse pour valider votre inscription.</p>'
-     +(QV?'<div style="padding:8px 11px;border-radius:8px;margin-bottom:11px;background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.18);font-size:.73rem;color:var(--gn)">\u2705 Vid\xE9o pr\xEAte</div>':'')
+    // Récapitulatif
+    var genLabel=QA.g==='h'?'&#128104; Homme fran\xE7ais':'&#128105; Femme tha\xEFlandaise';
+    var lookMap={serieux:'Relation s\xE9rieuse',mariage:'Mariage',explorer:'Ouvert(e)',amis:'Amis'};
+    var famMap={single:'C\xE9libataire sans enfant',kids_with:'Avec enfant(s)',kids_away:'Enfant(s) ailleurs'};
+    h='<div class="qe">&#10022; \xC9tape 8/'+QT_STEPS+'</div><div class="qt">\xC9tape finale : <em>contact</em></div>'
+     +'<div style="background:var(--b2);border-radius:12px;padding:14px;margin-bottom:14px;font-size:.84rem">'
+     +'<div style="font-weight:700;color:var(--g);margin-bottom:8px">&#10022; R\xE9capitulatif</div>'
+     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+     +'<div><span style="color:var(--td);font-size:.7rem">Profil</span><div>'+genLabel+'</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Pr\xE9nom</span><div>'+(QA.name||'—')+'</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">\xC2ge</span><div>'+(QA.age||'—')+' ans</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Ville</span><div>'+(QA.ville||'—')+'</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Taille</span><div>'+(QA.height||'—')+' cm</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Poids</span><div>'+(QA.weight||'—')+' kg</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Anglais</span><div>'+(QA.len||'—')+'</div></div>'
+     +'<div><span style="color:var(--td);font-size:.7rem">Recherche</span><div>'+(lookMap[QA.looking]||QA.looking||'—')+'</div></div>'
+     +'<div style="grid-column:span 2"><span style="color:var(--td);font-size:.7rem">Pr\xE9sentation</span><div style="font-size:.8rem;color:var(--tm)">'+(QA.desc?QA.desc.substring(0,80)+'...':'—')+'</div></div>'
+     +(QV?'<div style="grid-column:span 2"><span style="color:var(--gn);font-weight:600">\u2705 Vid\xE9o pr\xEAte</span></div>':'<div style="grid-column:span 2"><span style="color:var(--td)">&#128247; Pas de vid\xE9o (optionnel)</span></div>')
+     +'</div></div>'
      +'<div class="fg"><label class="fl">Email <span style="color:#C0392B">*</span></label><input class="fi" id="QE" type="email" placeholder="votre@email.com" value="'+(QA.email||'')+'"></div>'
      +'<div class="fg"><label class="fl">WhatsApp (optionnel)</label><input class="fi" id="QWH" type="tel" placeholder="+33 6 xx xx xx xx" value="'+(QA.whats||'')+'"></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" id="QSND" onclick="qSubmitBtn()">Envoyer ma candidature &#10022;</button></div>';
