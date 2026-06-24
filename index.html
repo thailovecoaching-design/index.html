@@ -138,18 +138,15 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-btn-like{background:linear-gradient(135deg,var(--rd),#E74C3C);color:#fff}
 .pp-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:none;touch-action:pan-y}
 /* Galerie média : photos + vidéo scrollable horizontalement */
-.pp-media{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;height:340px;flex-shrink:0;scrollbar-width:none}
-.pp-media::-webkit-scrollbar{display:none}
-.pp-media-slide{min-width:100%;height:100%;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;overflow:hidden}
-.pp-media-slide.photo-slide{font-size:8rem;background-size:cover;background-position:center top;background-repeat:no-repeat}
-.pp-media-slide.video-slide{background:#000;flex-direction:column;gap:6px;padding:8px}
-.pp-photo-grd{position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(to top,#fff,transparent);pointer-events:none}
-.pp-online-badge{position:absolute;top:12px;left:12px;background:var(--gn);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:10px}
-.pp-media-dots{display:flex;justify-content:center;gap:5px;padding:6px 0;flex-shrink:0;background:#fff}
-.pp-pdot{height:6px;border-radius:3px;background:rgba(26,39,68,.15);transition:all .2s;width:6px}
-.pp-pdot.on{background:var(--g);width:18px}
-.pp-pdot.vid{background:rgba(196,150,42,.5)}
-.pp-pdot.vid.on{background:var(--g)}
+.pp-media{display:none}.pp-media-dots{display:none}
+/* PHOTO portrait avec marges laterales */
+.pp-photo-wrap{margin:12px 20px 8px;border-radius:16px;overflow:hidden;position:relative;background:#222;aspect-ratio:3/4;max-height:300px;flex-shrink:0}
+.pp-photo-img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.pp-photo-emoji{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px}
+.pp-online-badge{position:absolute;top:10px;left:10px;background:var(--gn);color:#fff;font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:8px}
+/* VIDEO portrait sous la photo */
+.pp-video-wrap{margin:0 20px 8px;border-radius:16px;overflow:hidden;background:#000;position:relative}
+.pp-video-wrap video{width:100%;display:block;max-height:340px;object-fit:cover}
 .pp-body{padding:12px 16px 20px}
 .pp-name{font-family:var(--serif);font-size:2rem;font-weight:600;color:var(--nv);margin-bottom:3px}
 .pp-meta{font-size:.84rem;color:var(--td);margin-bottom:12px}
@@ -340,7 +337,8 @@ h2 em{font-style:italic;color:var(--g)}
   #modal-report{position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
   #pg-swipe{height:100vh !important;position:fixed !important;left:50% !important;right:auto !important;width:960px !important;transform:translateX(-50%) !important}
   .grid3{grid-template-columns:repeat(4,1fr)}
-  .pp-media{height:380px}
+  .pp-photo-wrap{max-height:380px}
+  .pp-video-wrap{max-height:500px}
 }
 </style>
 </head>
@@ -507,15 +505,18 @@ h2 em{font-style:italic;color:var(--g)}
   </div>
 </div>
 <div class="pp-scroll">
-  <!-- Galerie : slides scrollables horizontalement -->
-  <div class="pp-media" id="pp-media"></div>
-  <div class="pp-media-dots" id="pp-dots"></div>
+  <!-- Photo portrait -->
+  <div class="pp-photo-wrap" id="pp-photo-wrap"></div>
+  <!-- Vidéo portrait (visible seulement si profil a une vidéo) -->
+  <div class="pp-video-wrap" id="pp-video-wrap" style="display:none"></div>
   <div class="pp-body">
     <div id="pp-name" class="pp-name"></div>
     <div id="pp-meta" class="pp-meta"></div>
     <div id="pp-chips" class="pp-chips"></div>
     <div class="pp-sec-lbl">&#10022; Pr&eacute;sentation</div>
     <div id="pp-bio" class="pp-bio"></div>
+    <!-- Zone traduction vidéo : visible si profil a une vidéo -->
+    <div id="pp-trad-zone" style="display:none;margin-top:12px"></div>
     <div class="pp-sec-lbl">&#10022; Informations</div>
     <div id="pp-info" class="pp-info-grid"></div>
   </div>
@@ -1040,48 +1041,24 @@ function setHTab(id,btn){
 // ── PROFIL DETAIL : galerie média avec photos ET vidéo scrollable ──
 function openProfile(p){
   if(!p)return;currentPP=p;
-  var mediaStrip=g("pp-media"),dots=g("pp-dots");
-  if(mediaStrip){
-    var slides=[],dotHtml=[];
-    // SLIDE 1 : VIDÉO avec bouton transcription Whisper
-    if(p.video){
-      var vidId='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
-      var tradBadge=p.videoTranslated
-        ?'<div style="background:rgba(196,150,42,.15);border:1px solid var(--g);border-radius:20px;padding:4px 14px;font-size:.72rem;color:var(--g);font-weight:600;margin-bottom:8px">&#127760; Vid\xE9o traduite FR&#8596;TH</div>'
-        :'<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;margin-bottom:8px">&#127916; Vid\xE9o originale</div>';
-      var isThaiProfile=(genderView==='femme'||p.gender==='femme');
-      var tradBtn=isThaiProfile
-        ?(p.bioFr?'&#127467;&#127479; Voir en fran\xe7ais':'&#127467;&#127479; Traduire en fran\xe7ais')
-        :(p.bioTh?'&#127481;&#127469; Voir en tha\xef':'&#127481;&#127469; Traduire en tha\xef');
-      var tradTitle=isThaiProfile?'&#127467;&#127479; Traduction FR':'&#127481;&#127469; Traduction TH';
-      slides.push(
-        '<div class="pp-media-slide video-slide" id="'+vidId+'">'
-        +tradBadge
-        +'<video src="'+p.video+'" controls playsinline webkit-playsinline preload="metadata" style="width:100%;height:290px;border-radius:10px;object-fit:contain;background:#000"></video>'
-        +'<button onclick="transcribeVideo(\''+p.video+'\',\''+vidId+'\','+isThaiProfile+')" style="margin-top:4px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:20px;padding:7px 18px;font-size:.78rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans);white-space:nowrap">'+tradBtn+'</button>'
-        +'<div id="tr_'+vidId+'" style="margin-top:8px;text-align:left;display:none">'
-        +'<div style="font-size:.68rem;color:var(--g);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">'+tradTitle+'</div>'
-        +'<div id="tr_txt_'+vidId+'" style="font-size:.82rem;color:rgba(255,255,255,.85);line-height:1.6;background:rgba(255,255,255,.06);padding:10px;border-radius:10px"></div>'
-        +'</div>'
-        +'<div style="color:rgba(255,255,255,.3);font-size:.62rem;margin-top:6px">&#8592; Glisse pour voir la photo</div>'
-        +'</div>'
-      );
-      dotHtml.push('<div class="pp-pdot vid on"></div>');
-    }
-    // SLIDE 2 : PHOTO
+  // PHOTO portrait avec marges laterales
+  var photoWrap=g('pp-photo-wrap');
+  if(photoWrap){
     if(p.photo){
-      slides.push('<div class="pp-media-slide photo-slide" style="background-image:url(\''+p.photo+'\')">'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')+'<div class="pp-photo-grd"></div></div>');
+      photoWrap.innerHTML='<img class="pp-photo-img" src="'+p.photo+'" alt="'+p.name+'">'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'');
     } else {
-      slides.push('<div class="pp-media-slide photo-slide" style="background:'+p.bg+'"><span style="font-size:80px">'+p.emoji+'</span>'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')+'<div class="pp-photo-grd"></div></div>');
+      photoWrap.innerHTML='<div class="pp-photo-emoji" style="background:'+p.bg+'"><span>'+p.emoji+'</span></div>'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'');
     }
-    dotHtml.push('<div class="pp-pdot'+(p.video?'':' on')+'"></div>');
-    mediaStrip.innerHTML=slides.join('');
-    if(dots){
-      dots.innerHTML=dotHtml.join('');
-      mediaStrip.onscroll=function(){
-        var idx=Math.round(mediaStrip.scrollLeft/mediaStrip.offsetWidth);
-        dots.querySelectorAll('.pp-pdot').forEach(function(d,i){d.classList.toggle('on',i===idx);});
-      };
+  }
+  // VIDEO portrait sous la photo
+  var vidWrap=g('pp-video-wrap');
+  if(vidWrap){
+    if(p.video){
+      vidWrap.style.display='block';
+      vidWrap.innerHTML='<video src="'+p.video+'" controls playsinline webkit-playsinline preload="metadata"></video>';
+    } else {
+      vidWrap.style.display='none';
+      vidWrap.innerHTML='';
     }
   }
   g("pp-name").textContent=p.name;
@@ -1089,6 +1066,25 @@ function openProfile(p){
   var chips=g("pp-chips");chips.innerHTML="";
   [[p.online?"&#9679; En ligne":null,"gn"],[p.isNew?"&#10024; Nouveau":null,"gl"],[p.likedMe?"&#10084;&#65039; Vous aime":null,"rd"],["&#127468;&#127463; "+p.en,""],[p.looking,""]].forEach(function(c){if(!c[0])return;var s=document.createElement("span");s.className="pp-chip"+(c[1]?" "+c[1]:"");s.innerHTML=c[0];chips.appendChild(s);});
   g("pp-bio").textContent=p.bio;
+  // Zone traduction vidéo sous la bio
+  var tradZone=g('pp-trad-zone');
+  if(tradZone){
+    if(p.video){
+      var vidId2='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
+      var isThP=(genderView==='femme'||p.gender==='femme');
+      var tradLbl=isThP?(p.bioFr?'&#127467;&#127479; Voir en français':'&#127467;&#127479; Traduire en français'):(p.bioTh?'&#127481;&#127469; Voir en thaï':'&#127481;&#127469; Traduire en thaï');
+      tradZone.style.display='block';
+      tradZone.innerHTML=''
+        +'<button id="pp-trad-btn" onclick="callTranscribeEdge(\''+p.video+'\',\''+vidId2+'\','+isThP+')" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:12px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans)">⏳ Traduction en cours...</button>'
+        +'<div id="tr_'+vidId2+'" style="margin-top:10px;display:none">'
+        +'<div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:6px">'+(isThP?'&#127467;&#127479; Traduction FR':'&#127481;&#127469; Traduction TH')+'</div>'
+        +'<div id="tr_txt_'+vidId2+'" style="font-size:.88rem;color:var(--nv);line-height:1.7;background:var(--b2);padding:12px;border-radius:10px"></div>'
+        +'</div>';
+    } else {
+      tradZone.style.display='none';
+      tradZone.innerHTML='';
+    }
+  }
   g("pp-info").innerHTML=[["Situation",p.fam],["Recherche",p.looking],["Anglais",p.en],["Membre depuis",sinceLabel(p)]].map(function(item){return'<div class="pp-info-item"><span class="pp-info-lbl">'+item[0]+'</span><div class="pp-info-val">'+item[1]+'</div></div>';}).join('');
   g("pp-back").onclick=function(){var pp=g("PP");pp.classList.remove("on");pp.style.display="none";};
   var likeBtn=g("pp-like-state");
@@ -1100,31 +1096,51 @@ function openProfile(p){
     else{likeBtn.innerHTML="&#9825;";likeBtn.style.background="rgba(192,57,43,.15)";}
   }
   var pp=g("PP");pp.classList.add("on");pp.style.display="flex";
+  // Lancer la traduction automatique en arrière-plan
+  setTimeout(function(){autoTranslateProfile(p);},300);
 }
 
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
 
-// Transcription + traduction vidéo via OpenAI Whisper
-// Traduction via Supabase Edge Function transcribe-video
-function transcribeVideo(videoUrl, vidId, isThaiProfile){
-  var btn=document.querySelector('#'+vidId+' button');
-  var resDiv=g('tr_'+vidId);
-  var txtDiv=g('tr_txt_'+vidId);
-  if(!btn||!resDiv||!txtDiv)return;
-
-  // Utiliser la traduction pré-stockée si disponible
-  var p=currentPP;
-  var preStored=isThaiProfile?(p&&p.bioFr):(p&&p.bioTh);
+// TRADUCTION AUTOMATIQUE au chargement du profil
+// + bouton manuel si besoin
+function autoTranslateProfile(p){
+  if(!p||!p.video)return;
+  var vidId='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
+  var isThP=(genderView==='femme'||p.gender==='femme');
+  // Si traduction deja stockee -> afficher direct
+  var preStored=isThP?(p.bioFr):(p.bioTh);
   if(preStored){
-    txtDiv.innerHTML='<div style="font-size:.85rem;color:rgba(255,255,255,.9);line-height:1.6">'+preStored+'</div>';
-    resDiv.style.display='block';
-    btn.textContent='\u2705 Traduit';
+    showTranslation(vidId, preStored, null, isThP);
     return;
   }
+  // Sinon appeler Edge Function en arriere-plan
+  callTranscribeEdge(p.video, vidId, isThP);
+}
 
-  // Sinon appeler Edge Function
-  btn.textContent='\u23f3 Traduction en cours...';
-  btn.disabled=true;btn.style.opacity='.6';
+function showTranslation(vidId, translation, transcription, isThP){
+  var resDiv=g('tr_'+vidId);
+  var txtDiv=g('tr_txt_'+vidId);
+  var btn=g('pp-trad-btn');
+  if(!resDiv||!txtDiv)return;
+  var langLabel=isThP?'🇫🇷 Traduction FR':'🇹🇭 Traduction TH';
+  txtDiv.innerHTML='<p style="font-size:.88rem;color:var(--nv);line-height:1.7;margin:0">'+translation+'</p>'
+    +(transcription?'<p style="color:var(--td);font-size:.7rem;margin:6px 0 0;font-style:italic">🎤 Original : '+transcription.substring(0,120)+'</p>':'');
+  resDiv.style.display='block';
+  if(btn){
+    btn.innerHTML=langLabel+' <span style="color:var(--gn);margin-left:6px">✅ Traduit</span>';
+    btn.style.background='rgba(39,174,96,.08)';
+    btn.style.color='var(--nv)';
+    btn.style.border='1px solid rgba(39,174,96,.3)';
+    btn.disabled=false;btn.style.opacity='1';
+  }
+}
+
+function callTranscribeEdge(videoUrl, vidId, isThP){
+  var btn=g('pp-trad-btn');
+  var resDiv=g('tr_'+vidId);
+  var txtDiv=g('tr_txt_'+vidId);
+  if(btn){btn.innerHTML='⏳ Traduction en cours...';btn.disabled=true;btn.style.opacity='.7';}
 
   fetch('https://sbglyelgqceydofgllop.supabase.co/functions/v1/transcribe-video',{
     method:'POST',
@@ -1132,28 +1148,46 @@ function transcribeVideo(videoUrl, vidId, isThaiProfile){
       'Content-Type':'application/json',
       'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c'
     },
-    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThaiProfile?'fran\xe7ais':'tha\xef'})
+    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThP?'français':'thaï'})
   })
-  .then(function(r){return r.json();})
+  .then(function(r){
+    return r.text().then(function(txt){
+      try{return JSON.parse(txt);}
+      catch(e){throw new Error('Réponse invalide: '+txt.substring(0,200));}
+    });
+  })
   .then(function(d){
-    if(d.translation){
-      txtDiv.innerHTML='<div style="font-size:.85rem;color:rgba(255,255,255,.9);line-height:1.6">'+d.translation+'</div>'
-        +(d.transcription?'<div style="color:rgba(255,255,255,.3);font-size:.65rem;margin-top:6px">Original : '+d.transcription.substring(0,100)+'...</div>':'');
-      resDiv.style.display='block';
-      btn.textContent='\u2705 Traduit';
+    if(d.error){
+      showTradError(vidId, isThP, 'Erreur serveur: '+d.error);
+    } else if(d.translation){
+      showTranslation(vidId, d.translation, d.transcription, isThP);
     } else {
-      txtDiv.innerHTML='<em style="color:rgba(255,200,0,.7)">Aucun texte d\xe9tect\xe9.</em>';
-      resDiv.style.display='block';
-      btn.textContent=isThaiProfile?'\ud83c\uddeb\ud83c\uddf7 Voir en fran\xe7ais':'\ud83c\uddf9\ud83c\udded Voir en tha\xef';
+      showTradError(vidId, isThP, 'Aucun texte détecté dans la vidéo');
     }
-    btn.disabled=false;btn.style.opacity='1';
   })
-  .catch(function(){
-    txtDiv.innerHTML='<em style="color:rgba(255,100,100,.8)">Erreur connexion</em>';
-    resDiv.style.display='block';
-    btn.textContent=isThaiProfile?'\ud83c\uddeb\ud83c\uddf7 Voir en fran\xe7ais':'\ud83c\uddf9\ud83c\udded Voir en tha\xef';
-    btn.disabled=false;btn.style.opacity='1';
+  .catch(function(err){
+    showTradError(vidId, isThP, err.message||'Erreur connexion');
   });
+}
+
+function showTradError(vidId, isThP, msg){
+  var resDiv=g('tr_'+vidId);
+  var txtDiv=g('tr_txt_'+vidId);
+  var btn=g('pp-trad-btn');
+  if(resDiv&&txtDiv){
+    txtDiv.innerHTML='<em style="color:var(--rd);font-size:.8rem">⚠️ '+msg+'</em>';
+    resDiv.style.display='block';
+  }
+  if(btn){
+    btn.textContent=isThP?'🇫🇷 Réessayer':'🇹🇭 Réessayer';
+    btn.disabled=false;btn.style.opacity='1';
+    btn.onclick=function(){callTranscribeEdge(currentPP&&currentPP.video,vidId,isThP);};
+  }
+}
+
+// Bouton manuel (fallback)
+function transcribeVideo(videoUrl, vidId, isThaiProfile){
+  callTranscribeEdge(videoUrl, vidId, isThaiProfile);
 }
 
 
@@ -1397,7 +1431,7 @@ function qSub(){
   var entry={id:'ins_'+Date.now(),date:new Date().toISOString(),status:'pending',name:QA.name||'',age:QA.age||'',gender:QA.g==='h'?'homme':(QA.g==='f'?'femme':''),email:ev,whatsapp:wv,city:QA.ville||'',height:QA.height||'',weight:QA.weight||'',bio:QA.desc||'',english_level:QA.len||'',looking:QA.looking||'',family:QA.fam||''};
   try{var lst=JSON.parse(localStorage.getItem('ls_inscriptions')||'[]');lst.unshift(entry);localStorage.setItem('ls_inscriptions',JSON.stringify(lst));}catch(e){}
   var qwrap=g('QB');
-  if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Dossier bien re\xE7u.<br>Patrick vous contactera sous 48h<br>\xE0 <strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
+  if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e \u2756</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Votre dossier a bien \xE9t\xE9 re\xE7u.<br>Il sera examin\xE9 et valid\xE9 selon les crit\xE8res de s\xE9lection.<br>Un email de confirmation a \xE9t\xE9 envoy\xE9 \xE0<br><strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
   QD=true;
   // Upload photo + video Cloudinary, puis envoi Supabase
   function doSendSupa(videoUrl,photoUrl){
@@ -1443,7 +1477,7 @@ function qSub(){
   },400);
   setTimeout(function(){
     var xhr3=new XMLHttpRequest();xhr3.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);xhr3.setRequestHeader('Content-Type','application/json');xhr3.timeout=10000;
-    xhr3.send(JSON.stringify({service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',template_params:{to_email:entry.email,from_name:'LoveSiam',from_email:'contact@thailovematching.com',subject:'Votre inscription LoveSiam est confirm\xE9e',message:'Bonjour '+entry.name+',\n\nVotre inscription a bien \xE9t\xE9 re\xE7ue.\nPatrick vous contactera sous 48h.\n\nCordialement,\nLoveSiam'}}));
+    xhr3.send(JSON.stringify({service_id:'service_9mpf0pc',template_id:'template_yvczjb6',user_id:'_62gqRQHF8yL_AVRb',template_params:{to_email:entry.email,from_name:'LoveSiam',from_email:'contact@thailovematching.com',subject:'Votre inscription LoveSiam est confirm\xE9e',message:'Bonjour '+entry.name+',\n\nVotre inscription LoveSiam a bien \xE9t\xE9 re\xE7ue.\nElle sera examin\xE9e et valid\xE9e selon nos crit\xE8res de s\xE9lection.\nNous vous tiendrons inform\xE9(e) par email.\n\nCordialement,\nL\'\xE9quipe LoveSiam'}}));
   },600);
 }
 
@@ -1505,7 +1539,7 @@ function bQ(){
   var iF=QA.g==='f';
   var h='';
   if(QD){
-    g('QB').innerHTML='<div class="su"><i>&#127881;</i><h3>Inscription envoy\xE9e !</h3><p>Dossier bien re\xE7u. Patrick vous contactera sous 48h.</p><button class="qx qf" onclick="goPage(\'pg-h\')">Retour \xE0 l\'accueil</button></div>';
+    g('QB').innerHTML='<div class="su"><i>&#127881;</i><h3>Inscription envoy\xE9e !</h3><p>Votre dossier a bien \xE9t\xE9 re\xE7u. Il sera examin\xE9 et valid\xE9 selon nos crit\xE8res de s\xE9lection.</p><button class="qx qf" onclick="goPage(\'pg-h\')">Retour \xE0 l\'accueil</button></div>';
     if(pb)pb.style.width='100%';return;
   }
   if(QS===0){
