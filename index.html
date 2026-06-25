@@ -1136,7 +1136,10 @@ function showTranslation(vidId, translation, transcription, isThP){
   var resDiv=g('tr_'+vidId);
   var txtDiv=g('tr_txt_'+vidId);
   var loader=g('tr_loading_'+vidId);
-  if(!resDiv||!txtDiv)return;
+  if(!resDiv||!txtDiv){
+    console.warn('showTranslation: divs introuvables pour', vidId);
+    return;
+  }
   var tradLabel=isThP?'&#127467;&#127479; Traduction fran\xE7aise':'&#127481;&#127469; Traduction tha\xEFe';
   var origLabel=isThP?'&#127481;&#127469; Original tha\xEF :':'&#127467;&#127479; Original fran\xE7ais :';
   txtDiv.innerHTML=''
@@ -1163,6 +1166,7 @@ function callTranscribeEdge(videoUrl, vidId, isThP){
   })
   .then(function(r){
     return r.text().then(function(txt){
+      console.log('Edge Function response:', txt.substring(0,200));
       try{return JSON.parse(txt);}
       catch(e){throw new Error('Réponse invalide: '+txt.substring(0,200));}
     });
@@ -1183,8 +1187,15 @@ function callTranscribeEdge(videoUrl, vidId, isThP){
 
 function showTradError(vidId, isThP, msg){
   var loader=g('tr_loading_'+vidId);
+  var resDiv=g('tr_'+vidId);
+  var txtDiv=g('tr_txt_'+vidId);
   if(loader)loader.style.display='none';
-  console.warn('Traduction:', msg);
+  console.warn('Traduction erreur:', msg);
+  // Afficher l'erreur pour debug
+  if(resDiv&&txtDiv){
+    txtDiv.innerHTML='<em style="color:var(--rd);font-size:.8rem">⚠️ '+msg+'</em>';
+    resDiv.style.display='block';
+  }
 }
 
 // Bouton manuel (fallback)
