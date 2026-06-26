@@ -812,7 +812,7 @@ function loadApprovedProfiles(filterGender){
         var rows=JSON.parse(xhr.responseText)||[];
         var filtered=rows.filter(function(r){
           var g2=(r.gender||'').toLowerCase().trim();
-          if(gf==='homme')return !g2||g2==='homme'||g2==='h'||g2.indexOf('homme')>=0||g2.indexOf('man')>=0||g2==='';
+          if(gf==='homme')return !g2||g2==='homme'||g2==='h'||g2.indexOf('homme')>=0||g2.indexOf('man')>=0;
           if(gf==='femme')return g2==='femme'||g2==='f'||g2.indexOf('femme')>=0||g2.indexOf('tha')>=0;
           return true;
         });
@@ -1434,8 +1434,8 @@ function qSub(){
   if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e \u2756</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Votre dossier a bien \xE9t\xE9 re\xE7u.<br>Il sera examin\xE9 et valid\xE9 selon les crit\xE8res de s\xE9lection.<br>Un email de confirmation a \xE9t\xE9 envoy\xE9 \xE0<br><strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
   QD=true;
   // Upload photo + video Cloudinary, puis envoi Supabase
-  function doSendSupa(videoUrl,photoUrl,p2Url,p3Url){
-    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||'',photo_url:photoUrl||'',photo2_url:p2Url||'',photo3_url:p3Url||''});
+  function doSendSupa(videoUrl,photoUrl,p2,p3){
+    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||'',photo_url:photoUrl||'',photo2_url:p2||'',photo3_url:p3||''});
     var xhr=new XMLHttpRequest();xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('apikey',SB_KEY);xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);xhr.setRequestHeader('Prefer','return=minimal');xhr.timeout=15000;xhr.send(payload);
   }
   function uploadToCloudinary(blob,preset,cb){
@@ -1446,7 +1446,7 @@ function qSub(){
   }
   // Étape 1 : upload photo si présente
   var photo0=Array.isArray(QA.photos)&&QA.photos[0]?QA.photos[0]:null;
-  function afterPhoto(photoUrl,p2Url,p3Url){
+  function afterPhoto(photoUrl,p2,p3){
     // Étape 2 : upload vidéo si présente
     var vidSource=QA.vidBlob||QA.vidFile||null;
     if(vidSource){
@@ -1454,28 +1454,27 @@ function qSub(){
       var vf=vidSource instanceof File?vidSource:new File([vidSource],'video.mp4',{type:'video/mp4'});
       fd2.append('file',vf);fd2.append('upload_preset','lovesiam_videos');
       var xhrV=new XMLHttpRequest();xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);xhrV.timeout=120000;
-      xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu,photoUrl,p2Url||'',p3Url||'');};
+      xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu,photoUrl,p2||'',p3||'');};
       xhrV.onerror=function(){doSendSupa('',photoUrl);};xhrV.ontimeout=function(){doSendSupa('',photoUrl);};
       xhrV.send(fd2);
     }else{
-      setTimeout(function(){doSendSupa('',photoUrl,p2Url||'',p3Url||'');},200);
+      setTimeout(function(){doSendSupa('',photoUrl,p2||'',p3||'');},200);
     }
   }
-  // Upload 3 photos séquentiellement
-  var _photos=Array.isArray(QA.photos)?QA.photos.filter(Boolean):[];
-  var _p1='',_p2='',_p3='';
-  function _uploadNext(idx){
-    if(idx>=_photos.length){afterPhoto(_p1,_p2,_p3);return;}
-    var p=_photos[idx];if(!p){_uploadNext(idx+1);return;}
-    var arr=p.split(','),mime=(arr[0].match(/:(.*?);/)||[,'image/jpeg'])[1],bstr=atob(arr[1]),n2=bstr.length,u8=new Uint8Array(n2);
-    for(var i2=0;i2<n2;i2++)u8[i2]=bstr.charCodeAt(i2);
-    var fd=new FormData();fd.append('file',new Blob([u8],{type:mime}));fd.append('upload_preset','lovesiam_videos');
+  var _ph=Array.isArray(QA.photos)?QA.photos.filter(Boolean):[];
+  var _u1='',_u2='',_u3='';
+  function _up(i){
+    if(i>=_ph.length){afterPhoto(_u1,_u2,_u3);return;}
+    var p=_ph[i];if(!p){_up(i+1);return;}
+    var a=p.split(','),m=(a[0].match(/:(.*?);/)||[,'image/jpeg'])[1],b=atob(a[1]),n=b.length,u=new Uint8Array(n);
+    for(var j=0;j<n;j++)u[j]=b.charCodeAt(j);
+    var fd=new FormData();fd.append('file',new Blob([u],{type:m}));fd.append('upload_preset','lovesiam_videos');
     var x=new XMLHttpRequest();x.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',true);x.timeout=60000;
-    x.onreadystatechange=function(){if(x.readyState!==4)return;var url='';try{var r=JSON.parse(x.responseText);url=r.secure_url||'';}catch(e){}
-    if(idx===0)_p1=url;else if(idx===1)_p2=url;else if(idx===2)_p3=url;_uploadNext(idx+1);};
-    x.onerror=function(){_uploadNext(idx+1);};x.ontimeout=function(){_uploadNext(idx+1);};x.send(fd);
+    x.onreadystatechange=function(){if(x.readyState!==4)return;var url='';try{url=JSON.parse(x.responseText).secure_url||'';}catch(e){}
+      if(i===0)_u1=url;else if(i===1)_u2=url;else if(i===2)_u3=url;_up(i+1);};
+    x.onerror=function(){_up(i+1);};x.ontimeout=function(){_up(i+1);};x.send(fd);
   }
-  _uploadNext(0);
+  _up(0);
   setTimeout(function(){
     var msg='Inscription LoveSiam\nPr\xE9nom: '+entry.name+'\nEmail: '+entry.email+'\nGenre: '+entry.gender+'\nVille: '+entry.city+'\nRecherche: '+entry.looking;
     var xhr2=new XMLHttpRequest();xhr2.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);xhr2.setRequestHeader('Content-Type','application/json');xhr2.timeout=10000;
@@ -1633,7 +1632,6 @@ function bQ(){
      +'<div><span style="color:var(--td);font-size:.7rem">Anglais</span><div>'+(QA.len||'—')+'</div></div>'
      +'<div><span style="color:var(--td);font-size:.7rem">Recherche</span><div>'+(lookMap[QA.looking]||QA.looking||'—')+'</div></div>'
      +'<div style="grid-column:span 2"><span style="color:var(--td);font-size:.7rem">Pr\xE9sentation</span><div style="font-size:.8rem;color:var(--tm)">'+(QA.desc?QA.desc.substring(0,80)+'...':'—')+'</div></div>'
-     +'<div style="grid-column:span 2"><span style="color:var(--td);font-size:.7rem">Photos</span><div style="color:'+(Array.isArray(QA.photos)&&QA.photos.filter(Boolean).length>0?'var(--gn)':'var(--td)')+'">'+(Array.isArray(QA.photos)&&QA.photos.filter(Boolean).length>0?'\u2705 '+QA.photos.filter(Boolean).length+' photo(s)':'Aucune photo')+'</div></div>'
      +(QV?'<div style="grid-column:span 2"><span style="color:var(--gn);font-weight:600">\u2705 Vid\xE9o pr\xEAte</span></div>':'<div style="grid-column:span 2"><span style="color:var(--td)">&#128247; Pas de vid\xE9o (optionnel)</span></div>')
      +'</div></div>'
      +'<div class="fg"><label class="fl">Email <span style="color:#C0392B">*</span></label><input class="fi" id="QE" type="email" placeholder="votre@email.com" value="'+(QA.email||'')+'"></div>'
