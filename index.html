@@ -1086,12 +1086,12 @@ function openProfile(p){
       var vidId2='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
       var isThP=(genderView==='femme'||p.gender==='femme');
       tradZone.style.display='block';
-      var btnLbl=isThP?'&#127467;&#127479; Traduire en fran\xE7ais':'&#127481;&#127469; Traduire en tha\xEF';
+      var btnLabel=isThP?'&#127467;&#127479; Traduire en fran\xE7ais':'&#127481;&#127469; Traduire en tha\xEF';
       tradZone.innerHTML=''
         +'<button id="pp-trad-btn" onclick="doTranslate(\''+p.video+'\',\''+vidId2+'\','+isThP+')" '
         +'style="width:100%;padding:12px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:12px;font-size:.88rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans);margin-bottom:8px">'
-        +btnLbl+'</button>'
-        +'<div id="tr_'+vidId2+'" style="display:none">'
+        +btnLabel+'</button>'
+        +'<div id="tr_'+vidId2+'" style="display:none;margin-top:4px">'
         +'<div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:6px" id="tr_lbl_'+vidId2+'"></div>'
         +'<div id="tr_txt_'+vidId2+'" style="font-size:.9rem;color:var(--nv);line-height:1.78;background:var(--b2);padding:12px;border-radius:10px"></div>'
         +'</div>';
@@ -1111,7 +1111,7 @@ function openProfile(p){
     else{likeBtn.innerHTML="&#9825;";likeBtn.style.background="rgba(192,57,43,.15)";}
   }
   var pp=g("PP");pp.classList.add("on");pp.style.display="flex";
-  // Traduction via bouton manuel
+  // Traduction manuelle via bouton - pas d'auto-lancement
 }
 
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
@@ -1139,13 +1139,13 @@ function doTranslate(videoUrl, vidId, isThP){
         +(d.transcription?'<p style="color:var(--td);font-size:.75rem;margin:8px 0 0;font-style:italic">Original: '+d.transcription+'</p>':'');
       resDiv.style.display='block';
       if(btn){btn.textContent='\u2705 Traduit';btn.disabled=false;btn.style.opacity='1';btn.style.background='rgba(39,174,96,.1)';btn.style.color='var(--gn)';}
-    }else{
-      var err=d.error||'Erreur inconnue';
-      if(btn){btn.textContent='\u26A0\uFE0F '+err.substring(0,60);btn.disabled=false;btn.style.opacity='1';btn.style.background='rgba(192,57,43,.1)';btn.style.color='var(--rd)';}
+    } else {
+      var err=d.error||'Aucun texte d\xE9tect\xE9';
+      if(btn){btn.textContent='\u26A0\uFE0F '+err.substring(0,50);btn.disabled=false;btn.style.opacity='1';btn.style.background='rgba(192,57,43,.1)';btn.style.color='var(--rd)';}
     }
   })
   .catch(function(e){
-    if(btn){btn.textContent='\u274C Erreur r\xE9seau';btn.disabled=false;btn.style.opacity='1';}
+    if(btn){btn.textContent='\u274C Erreur: '+e.message.substring(0,40);btn.disabled=false;btn.style.opacity='1';}
   });
 }
 
@@ -1679,7 +1679,7 @@ function bQ(){
      +'<div class="lr" id="LENBLOCK"><div class="lh"><span>&#127468;&#127463;</span><span style="font-size:.9rem;font-weight:500">Anglais <span style="color:#C0392B">*</span></span></div><div class="lp">'+langEN+'</div></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===2){
-    h='<div class="qe">&#10022; \xC9tape 3/'+QT_STEPS+'</div><div class="qt">Votre <em>description</em> <span style="color:var(--rd)">*</span></div><p class="qs">Pr\xE9sentez-vous sinc\xE8rement. <strong style="color:var(--rd)">Obligatoire.</strong></p>'
+    h='<div class="qe">&#10022; \xC9tape 3/'+QT_STEPS+'</div><div class="qt">Votre <em>description</em> <span style="color:var(--rd)">*</span></div><p class="qs">Pr\xE9sentez-vous sinc\xE8rement. <strong style="color:var(--rd)">Champ obligatoire.</strong></p>'
      +'<div class="fg"><textarea class="fa" id="QDESC" rows="5" maxlength="500" oninput="updateBioCount(this)">'+(QA.desc||'')+'</textarea><div id="BIO_COUNT" style="text-align:right;font-size:.72rem;color:var(--td);margin-top:3px">'+(QA.desc?QA.desc.length:0)+'/500</div></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===3){
