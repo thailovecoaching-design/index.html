@@ -145,8 +145,8 @@ h2 em{font-style:italic;color:var(--g)}
 .pp-photo-emoji{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px}
 .pp-online-badge{position:absolute;top:10px;left:10px;background:var(--gn);color:#fff;font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:8px}
 /* VIDEO portrait sous la photo */
-.pp-video-wrap{margin:0 20px 8px;border-radius:16px;overflow:hidden;background:#000;position:relative}
-.pp-video-wrap video{width:100%;display:block;max-height:340px;object-fit:cover}
+.pp-video-wrap{margin:0 20px 8px;border-radius:16px;overflow:hidden;background:#000;position:relative;aspect-ratio:1/1}
+.pp-video-wrap video{width:100%;height:100%;display:block;object-fit:cover}
 .pp-body{padding:12px 16px 20px}
 .pp-name{font-family:var(--serif);font-size:2rem;font-weight:600;color:var(--nv);margin-bottom:3px}
 .pp-meta{font-size:.84rem;color:var(--td);margin-bottom:12px}
@@ -290,6 +290,7 @@ h2 em{font-style:italic;color:var(--g)}
 .cp{font-size:.78rem;color:rgba(255,255,255,.4);text-align:center;padding:13px;line-height:1.58}
 .rb{position:absolute;top:8px;left:8px;background:var(--rd);color:#fff;padding:3px 8px;border-radius:6px;font-size:.67rem;display:flex;align-items:center;gap:4px;font-weight:500}
 .rd2{width:5px;height:5px;border-radius:50%;background:#fff;animation:bk .8s infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes bk{0%,100%{opacity:1}50%{opacity:.2}}
 .cpb{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.1)}
 .cpf{height:100%;background:var(--rd);transition:width 1s linear}
@@ -517,6 +518,8 @@ h2 em{font-style:italic;color:var(--g)}
     <div id="pp-bio" class="pp-bio"></div>
     <!-- Zone traduction vidéo : visible si profil a une vidéo -->
     <div id="pp-trad-zone" style="display:none;margin-top:12px"></div>
+    <!-- Zone traduction vidéo -->
+    </div>
     <div class="pp-sec-lbl">&#10022; Informations</div>
     <div id="pp-info" class="pp-info-grid"></div>
   </div>
@@ -833,7 +836,7 @@ function loadApprovedProfiles(filterGender){
               .replace('/video/upload/','/video/upload/so_0,f_jpg,w_400,h_500,c_fill,g_face,q_auto/')
               .replace(/\.(mp4|mov|webm|MP4|MOV|WEBM)$/,'.jpg');
           }
-          return {id:'sb_'+r.id,name:r.name||'\u2014',age:r.age||0,ville:r.city||'',taille:r.height?(r.height+' cm'):'',poids:r.weight?(r.weight+' kg'):'',fam:r.family||'',looking:r.looking||'',en:r.english_level||'',online:false,joinedAt:jMs,isNew:(NOW2-jMs)<86400000,likedMe:false,bio:r.bio||'',bioFr:r.bio_fr||'',bioTh:r.bio_th||'',emoji:gf==='femme'?'&#128105;':'&#128104;',photo:r.photo_url||'',photo2:r.photo2_url||'',photo3:r.photo3_url||'',thumb:thumb,video:videoUrl,videoTranslated:r.video_translated===true||r.video_translated==='true'||r.video_translated==='TRUE',bg:gf==='femme'?'linear-gradient(160deg,#1A2744,#0D1522)':'linear-gradient(160deg,#2A1A44,#150D22)',fromSupabase:true};
+          return {id:'sb_'+r.id,name:r.name||'\u2014',age:r.age||0,ville:r.city||'',taille:r.height?(r.height+' cm'):'',poids:r.weight?(r.weight+' kg'):'',fam:r.family||'',looking:r.looking||'',en:r.english_level||'',online:false,joinedAt:jMs,isNew:(NOW2-jMs)<86400000,likedMe:false,bio:r.bio||'',bioFr:r.bio_fr||'',bioTh:r.bio_th||'',emoji:gf==='femme'?'&#128105;':'&#128104;',photo:r.photo_url||'',photo2:r.photo2_url||'',photo3:r.photo3_url||'',photos:[r.photo_url,r.photo2_url,r.photo3_url].filter(Boolean),thumb:thumb,video:videoUrl,videoTranslated:r.video_translated===true||r.video_translated==='true'||r.video_translated==='TRUE',bg:gf==='femme'?'linear-gradient(160deg,#1A2744,#0D1522)':'linear-gradient(160deg,#2A1A44,#150D22)',fromSupabase:true};
         });
         PROFILES.length=0;newProfiles.forEach(function(p){PROFILES.push(p);});
         renderGrid(gTab||'all');renderSwipe();
@@ -1041,13 +1044,23 @@ function setHTab(id,btn){
 // ── PROFIL DETAIL : galerie média avec photos ET vidéo scrollable ──
 function openProfile(p){
   if(!p)return;currentPP=p;
-  // PHOTO portrait avec marges laterales
+  // PHOTOS : galerie scrollable (1 a 3 photos)
   var photoWrap=g('pp-photo-wrap');
   if(photoWrap){
-    if(p.photo){
-      photoWrap.innerHTML='<img class="pp-photo-img" src="'+p.photo+'" alt="'+p.name+'">'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'');
-    } else {
+    var allPh=[p.photo,p.photo2,p.photo3].filter(Boolean);
+    if(allPh.length===0){
       photoWrap.innerHTML='<div class="pp-photo-emoji" style="background:'+p.bg+'"><span>'+p.emoji+'</span></div>'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'');
+    } else if(allPh.length===1){
+      photoWrap.innerHTML='<img class="pp-photo-img" src="'+allPh[0]+'" alt="'+p.name+'">'+(p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'');
+    } else {
+      var sl=allPh.map(function(url,i){
+        return '<div style="min-width:100%;height:100%;scroll-snap-align:start;flex-shrink:0;overflow:hidden;position:relative">'
+          +'<img src="'+url+'" style="width:100%;height:100%;object-fit:cover;object-position:top center;display:block">'
+          +(i===0&&p.online?'<div class="pp-online-badge">&#9679; En ligne</div>':'')
+          +'<div style="position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.5);color:#fff;font-size:.65rem;padding:2px 7px;border-radius:8px">'+(i+1)+'/'+allPh.length+'</div>'
+          +'</div>';
+      }).join('');
+      photoWrap.innerHTML='<div style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;height:100%;scrollbar-width:none;touch-action:pan-x">'+sl+'</div>';
     }
   }
   // VIDEO portrait sous la photo
@@ -1066,25 +1079,27 @@ function openProfile(p){
   var chips=g("pp-chips");chips.innerHTML="";
   [[p.online?"&#9679; En ligne":null,"gn"],[p.isNew?"&#10024; Nouveau":null,"gl"],[p.likedMe?"&#10084;&#65039; Vous aime":null,"rd"],["&#127468;&#127463; "+p.en,""],[p.looking,""]].forEach(function(c){if(!c[0])return;var s=document.createElement("span");s.className="pp-chip"+(c[1]?" "+c[1]:"");s.innerHTML=c[0];chips.appendChild(s);});
   g("pp-bio").textContent=p.bio;
-  // Zone traduction vidéo sous la bio
+  // Zone traduction sous la bio
   var tradZone=g('pp-trad-zone');
   if(tradZone){
     if(p.video){
       var vidId2='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
       var isThP=(genderView==='femme'||p.gender==='femme');
-      var tradLbl=isThP?(p.bioFr?'&#127467;&#127479; Voir en français':'&#127467;&#127479; Traduire en français'):(p.bioTh?'&#127481;&#127469; Voir en thaï':'&#127481;&#127469; Traduire en thaï');
       tradZone.style.display='block';
+      var btnLbl=isThP?'&#127467;&#127479; Traduire en fran\xE7ais':'&#127481;&#127469; Traduire en tha\xEF';
       tradZone.innerHTML=''
-        +'<button id="pp-trad-btn" onclick="callTranscribeEdge(\''+p.video+'\',\''+vidId2+'\','+isThP+')" style="width:100%;padding:11px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:12px;font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans)">⏳ Traduction en cours...</button>'
-        +'<div id="tr_'+vidId2+'" style="margin-top:10px;display:none">'
-        +'<div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:6px">'+(isThP?'&#127467;&#127479; Traduction FR':'&#127481;&#127469; Traduction TH')+'</div>'
-        +'<div id="tr_txt_'+vidId2+'" style="font-size:.88rem;color:var(--nv);line-height:1.7;background:var(--b2);padding:12px;border-radius:10px"></div>'
+        +'<button id="pp-trad-btn" onclick="doTranslate(\''+p.video+'\',\''+vidId2+'\','+isThP+')" '
+        +'style="width:100%;padding:12px;background:linear-gradient(135deg,var(--g),var(--gl));border:none;border-radius:12px;font-size:.88rem;font-weight:700;color:#fff;cursor:pointer;font-family:var(--sans);margin-bottom:8px">'
+        +btnLbl+'</button>'
+        +'<div id="tr_'+vidId2+'" style="display:none">'
+        +'<div style="font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:6px" id="tr_lbl_'+vidId2+'"></div>'
+        +'<div id="tr_txt_'+vidId2+'" style="font-size:.9rem;color:var(--nv);line-height:1.78;background:var(--b2);padding:12px;border-radius:10px"></div>'
         +'</div>';
     } else {
       tradZone.style.display='none';
-      tradZone.innerHTML='';
     }
   }
+
   g("pp-info").innerHTML=[["Situation",p.fam],["Recherche",p.looking],["Anglais",p.en],["Membre depuis",sinceLabel(p)]].map(function(item){return'<div class="pp-info-item"><span class="pp-info-lbl">'+item[0]+'</span><div class="pp-info-val">'+item[1]+'</div></div>';}).join('');
   g("pp-back").onclick=function(){var pp=g("PP");pp.classList.remove("on");pp.style.display="none";};
   var likeBtn=g("pp-like-state");
@@ -1096,11 +1111,43 @@ function openProfile(p){
     else{likeBtn.innerHTML="&#9825;";likeBtn.style.background="rgba(192,57,43,.15)";}
   }
   var pp=g("PP");pp.classList.add("on");pp.style.display="flex";
-  // Lancer la traduction automatique en arrière-plan
-  setTimeout(function(){autoTranslateProfile(p);},300);
+  // Traduction via bouton manuel
 }
 
 function passFromProfile(){var pp=g("PP");if(pp){pp.classList.remove("on");pp.style.display="none";}doSwipe("left");}
+
+function doTranslate(videoUrl, vidId, isThP){
+  var btn=document.getElementById('pp-trad-btn');
+  var resDiv=document.getElementById('tr_'+vidId);
+  var txtDiv=document.getElementById('tr_txt_'+vidId);
+  var lblDiv=document.getElementById('tr_lbl_'+vidId);
+  if(!resDiv||!txtDiv)return;
+  if(btn){btn.textContent='\u23f3 Traduction en cours...';btn.disabled=true;btn.style.opacity='.6';}
+  fetch('https://sbglyelgqceydofgllop.supabase.co/functions/v1/transcribe-video',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c'
+    },
+    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThP?'francais':'thai',sourceLang:isThP?'th':'fr'})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.translation){
+      if(lblDiv)lblDiv.textContent=isThP?'\uD83C\uDDEB\uD83C\uDDF7 Traduction fran\xE7aise':'\uD83C\uDDF9\uD83C\uDDED Traduction tha\xEFe';
+      txtDiv.innerHTML='<p style="margin:0">'+d.translation+'</p>'
+        +(d.transcription?'<p style="color:var(--td);font-size:.75rem;margin:8px 0 0;font-style:italic">Original: '+d.transcription+'</p>':'');
+      resDiv.style.display='block';
+      if(btn){btn.textContent='\u2705 Traduit';btn.disabled=false;btn.style.opacity='1';btn.style.background='rgba(39,174,96,.1)';btn.style.color='var(--gn)';}
+    }else{
+      var err=d.error||'Erreur inconnue';
+      if(btn){btn.textContent='\u26A0\uFE0F '+err.substring(0,60);btn.disabled=false;btn.style.opacity='1';btn.style.background='rgba(192,57,43,.1)';btn.style.color='var(--rd)';}
+    }
+  })
+  .catch(function(e){
+    if(btn){btn.textContent='\u274C Erreur r\xE9seau';btn.disabled=false;btn.style.opacity='1';}
+  });
+}
 
 // TRADUCTION AUTOMATIQUE au chargement du profil
 // + bouton manuel si besoin
@@ -1121,26 +1168,23 @@ function autoTranslateProfile(p){
 function showTranslation(vidId, translation, transcription, isThP){
   var resDiv=g('tr_'+vidId);
   var txtDiv=g('tr_txt_'+vidId);
-  var btn=g('pp-trad-btn');
+  var loader=g('tr_loading_'+vidId);
   if(!resDiv||!txtDiv)return;
-  var langLabel=isThP?'🇫🇷 Traduction FR':'🇹🇭 Traduction TH';
-  txtDiv.innerHTML='<p style="font-size:.88rem;color:var(--nv);line-height:1.7;margin:0">'+translation+'</p>'
-    +(transcription?'<p style="color:var(--td);font-size:.7rem;margin:6px 0 0;font-style:italic">🎤 Original : '+transcription.substring(0,120)+'</p>':'');
+  var tradLabel=isThP?'&#127467;&#127479; Traduction fran\xE7aise':'&#127481;&#127469; Traduction tha\xEFe';
+  var origLabel=isThP?'&#127481;&#127469; Original tha\xEF :':'&#127467;&#127479; Original fran\xE7ais :';
+  txtDiv.innerHTML=''
+    +'<div style="font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:8px">'+tradLabel+'</div>'
+    +'<p style="margin:0;font-size:.9rem;color:var(--nv);line-height:1.78">'+translation+'</p>'
+    +(transcription?'<p style="color:var(--td);font-size:.75rem;margin:10px 0 0;font-style:italic;border-top:1px solid rgba(0,0,0,.07);padding-top:8px">'+origLabel+' '+transcription+'</p>':'');
   resDiv.style.display='block';
-  if(btn){
-    btn.innerHTML=langLabel+' <span style="color:var(--gn);margin-left:6px">✅ Traduit</span>';
-    btn.style.background='rgba(39,174,96,.08)';
-    btn.style.color='var(--nv)';
-    btn.style.border='1px solid rgba(39,174,96,.3)';
-    btn.disabled=false;btn.style.opacity='1';
-  }
+  if(loader)loader.style.display='none';
 }
 
 function callTranscribeEdge(videoUrl, vidId, isThP){
-  var btn=g('pp-trad-btn');
+  var loader=g('tr_loading_'+vidId);
   var resDiv=g('tr_'+vidId);
   var txtDiv=g('tr_txt_'+vidId);
-  if(btn){btn.innerHTML='⏳ Traduction en cours...';btn.disabled=true;btn.style.opacity='.7';}
+  if(loader)loader.style.display='flex';
 
   fetch('https://sbglyelgqceydofgllop.supabase.co/functions/v1/transcribe-video',{
     method:'POST',
@@ -1148,7 +1192,7 @@ function callTranscribeEdge(videoUrl, vidId, isThP){
       'Content-Type':'application/json',
       'Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c'
     },
-    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThP?'français':'thaï'})
+    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThP?'fran\xE7ais':'tha\xEF',sourceLang:isThP?'th':'fr'})
   })
   .then(function(r){
     return r.text().then(function(txt){
@@ -1171,18 +1215,9 @@ function callTranscribeEdge(videoUrl, vidId, isThP){
 }
 
 function showTradError(vidId, isThP, msg){
-  var resDiv=g('tr_'+vidId);
-  var txtDiv=g('tr_txt_'+vidId);
-  var btn=g('pp-trad-btn');
-  if(resDiv&&txtDiv){
-    txtDiv.innerHTML='<em style="color:var(--rd);font-size:.8rem">⚠️ '+msg+'</em>';
-    resDiv.style.display='block';
-  }
-  if(btn){
-    btn.textContent=isThP?'🇫🇷 Réessayer':'🇹🇭 Réessayer';
-    btn.disabled=false;btn.style.opacity='1';
-    btn.onclick=function(){callTranscribeEdge(currentPP&&currentPP.video,vidId,isThP);};
-  }
+  var loader=g('tr_loading_'+vidId);
+  if(loader)loader.style.display='none';
+  console.warn('Traduction:', msg);
 }
 
 // Bouton manuel (fallback)
@@ -1433,48 +1468,117 @@ function qSub(){
   var qwrap=g('QB');
   if(qwrap){qwrap.innerHTML='<div style="text-align:center;padding:48px 24px"><div style="font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--nv);margin-bottom:10px">Inscription envoy\xE9e \u2756</div><div style="font-size:.92rem;color:var(--tm);line-height:1.8;margin-bottom:28px">Votre dossier a bien \xE9t\xE9 re\xE7u.<br>Il sera examin\xE9 et valid\xE9 selon les crit\xE8res de s\xE9lection.<br>Un email de confirmation a \xE9t\xE9 envoy\xE9 \xE0<br><strong style="color:var(--nv)">'+ev+'</strong></div><button onclick="goPage(\'pg-h\')" style="padding:13px 28px;background:linear-gradient(135deg,var(--g),var(--gl));color:#fff;border:none;border-radius:30px;font-size:.92rem;font-weight:600;cursor:pointer">Retour \xE0 l\'accueil</button></div>';}
   QD=true;
-  // Upload photo + video Cloudinary, puis envoi Supabase
-  function doSendSupa(videoUrl,photoUrl,p2,p3){
-    var payload=JSON.stringify({status:'pending',name:entry.name,age:entry.age?parseInt(entry.age):null,gender:entry.gender,email:entry.email,whatsapp:entry.whatsapp,city:entry.city,height:entry.height,weight:entry.weight,bio:entry.bio,english_level:entry.english_level,looking:entry.looking,family:entry.fam||'',video_url:videoUrl||'',photo_url:photoUrl||'',photo2_url:p2||'',photo3_url:p3||''});
-    var xhr=new XMLHttpRequest();xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('apikey',SB_KEY);xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);xhr.setRequestHeader('Prefer','return=minimal');xhr.timeout=15000;xhr.send(payload);
+  // Variables partagées pour toutes les fonctions d'upload
+  var ph1Url='',ph2Url='',ph3Url='';
+
+  // Envoyer à Supabase avec toutes les URLs disponibles
+  function doSendSupa(videoUrl){
+    var payload=JSON.stringify({
+      status:'pending',
+      name:entry.name,
+      age:entry.age?parseInt(entry.age):null,
+      gender:entry.gender,
+      email:entry.email,
+      whatsapp:entry.whatsapp,
+      city:entry.city,
+      height:entry.height,
+      weight:entry.weight,
+      bio:entry.bio,
+      english_level:entry.english_level,
+      looking:entry.looking,
+      family:entry.fam||'',
+      video_url:videoUrl||'',
+      photo_url:ph1Url||'',
+      photo2_url:ph2Url||'',
+      photo3_url:ph3Url||''
+    });
+    var xhr=new XMLHttpRequest();
+    xhr.open('POST',SB_URL+'/rest/v1/inscriptions',true);
+    xhr.setRequestHeader('Content-Type','application/json');
+    xhr.setRequestHeader('apikey',SB_KEY);
+    xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);
+    xhr.setRequestHeader('Prefer','return=minimal');
+    xhr.timeout=15000;
+    xhr.onreadystatechange=function(){
+      if(xhr.readyState!==4)return;
+      if(xhr.status>=200&&xhr.status<300){
+        console.log('Supabase OK - inscription envoyée');
+      } else {
+        console.error('Supabase ERREUR',xhr.status,xhr.responseText);
+      }
+    };
+    xhr.send(payload);
   }
-  function uploadToCloudinary(blob,preset,cb){
-    var fd=new FormData();fd.append('file',blob);fd.append('upload_preset',preset);
-    var x=new XMLHttpRequest();x.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',true);x.timeout=60000;
-    x.onreadystatechange=function(){if(x.readyState!==4)return;var url='';try{var r=JSON.parse(x.responseText);url=r.secure_url||'';}catch(e){}cb(url);};
-    x.onerror=function(){cb('');};x.ontimeout=function(){cb('');};x.send(fd);
+
+  // Upload image vers Cloudinary (endpoint auto)
+  function uploadImage(blob,cb){
+    var fd=new FormData();
+    fd.append('file',blob);
+    fd.append('upload_preset','lovesiam_videos');
+    var x=new XMLHttpRequest();
+    x.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',true);
+    x.timeout=60000;
+    x.onreadystatechange=function(){
+      if(x.readyState!==4)return;
+      var url='';
+      try{var r=JSON.parse(x.responseText);url=r.secure_url||'';}catch(e){}
+      cb(url);
+    };
+    x.onerror=function(){cb('');};x.ontimeout=function(){cb('');};
+    x.send(fd);
   }
-  // Étape 1 : upload photo si présente
-  var photo0=Array.isArray(QA.photos)&&QA.photos[0]?QA.photos[0]:null;
-  function afterPhoto(photoUrl,p2,p3){
-    // Étape 2 : upload vidéo si présente
+
+  // Convertir base64 en Blob
+  function b64toBlob(dataUrl){
+    var arr=dataUrl.split(','),mime=(arr[0].match(/:(.*?);/)||[,'image/jpeg'])[1];
+    var bstr=atob(arr[1]),n2=bstr.length,u8=new Uint8Array(n2);
+    for(var i2=0;i2<n2;i2++)u8[i2]=bstr.charCodeAt(i2);
+    return new Blob([u8],{type:mime});
+  }
+
+  // Upload vidéo puis envoyer à Supabase
+  function uploadVideoThenSend(){
     var vidSource=QA.vidBlob||QA.vidFile||null;
     if(vidSource){
       var fd2=new FormData();
       var vf=vidSource instanceof File?vidSource:new File([vidSource],'video.mp4',{type:'video/mp4'});
-      fd2.append('file',vf);fd2.append('upload_preset','lovesiam_videos');
-      var xhrV=new XMLHttpRequest();xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);xhrV.timeout=120000;
-      xhrV.onreadystatechange=function(){if(xhrV.readyState!==4)return;var vu='';try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}doSendSupa(vu,photoUrl,p2||'',p3||'');};
-      xhrV.onerror=function(){doSendSupa('',photoUrl);};xhrV.ontimeout=function(){doSendSupa('',photoUrl);};
+      fd2.append('file',vf);
+      fd2.append('upload_preset','lovesiam_videos');
+      var xhrV=new XMLHttpRequest();
+      xhrV.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/video/upload',true);
+      xhrV.timeout=120000;
+      xhrV.onreadystatechange=function(){
+        if(xhrV.readyState!==4)return;
+        var vu='';
+        try{var r=JSON.parse(xhrV.responseText);vu=r.secure_url||'';}catch(e){}
+        doSendSupa(vu);
+      };
+      xhrV.onerror=function(){doSendSupa('');};
+      xhrV.ontimeout=function(){doSendSupa('');};
       xhrV.send(fd2);
-    }else{
-      setTimeout(function(){doSendSupa('',photoUrl,p2||'',p3||'');},200);
+    } else {
+      doSendSupa('');
     }
   }
-  var _ph=Array.isArray(QA.photos)?QA.photos.filter(Boolean):[];
-  var _u1='',_u2='',_u3='';
-  function _up(i){
-    if(i>=_ph.length){afterPhoto(_u1,_u2,_u3);return;}
-    var p=_ph[i];if(!p){_up(i+1);return;}
-    var a=p.split(','),m=(a[0].match(/:(.*?);/)||[,'image/jpeg'])[1],b=atob(a[1]),n=b.length,u=new Uint8Array(n);
-    for(var j=0;j<n;j++)u[j]=b.charCodeAt(j);
-    var fd=new FormData();fd.append('file',new Blob([u],{type:m}));fd.append('upload_preset','lovesiam_videos');
-    var x=new XMLHttpRequest();x.open('POST','https://api.cloudinary.com/v1_1/dfxxg3dk4/image/upload',true);x.timeout=60000;
-    x.onreadystatechange=function(){if(x.readyState!==4)return;var url='';try{url=JSON.parse(x.responseText).secure_url||'';}catch(e){}
-      if(i===0)_u1=url;else if(i===1)_u2=url;else if(i===2)_u3=url;_up(i+1);};
-    x.onerror=function(){_up(i+1);};x.ontimeout=function(){_up(i+1);};x.send(fd);
+
+  // Upload photos séquentiellement puis vidéo
+  var allPhotos=Array.isArray(QA.photos)?QA.photos.filter(Boolean):[];
+  function uploadPhotoAt(idx){
+    if(idx>=allPhotos.length){
+      // Toutes les photos uploadées, passer à la vidéo
+      uploadVideoThenSend();
+      return;
+    }
+    var p=allPhotos[idx];
+    if(!p){uploadPhotoAt(idx+1);return;}
+    uploadImage(b64toBlob(p),function(url){
+      if(idx===0)ph1Url=url;
+      else if(idx===1)ph2Url=url;
+      else if(idx===2)ph3Url=url;
+      uploadPhotoAt(idx+1);
+    });
   }
-  _up(0);
+  uploadPhotoAt(0);
   setTimeout(function(){
     var msg='Inscription LoveSiam\nPr\xE9nom: '+entry.name+'\nEmail: '+entry.email+'\nGenre: '+entry.gender+'\nVille: '+entry.city+'\nRecherche: '+entry.looking;
     var xhr2=new XMLHttpRequest();xhr2.open('POST','https://api.emailjs.com/api/v1.0/email/send',true);xhr2.setRequestHeader('Content-Type','application/json');xhr2.timeout=10000;
@@ -1532,8 +1636,15 @@ function qCamRec(){
   try{QMR=new MediaRecorder(QST,mt?{mimeType:mt}:{});}catch(e){try{QMR=new MediaRecorder(QST);}catch(e2){return;}}
   QMR.ondataavailable=function(e){if(e.data&&e.data.size>0)QCH.push(e.data);};
   QMR.onstop=function(){var bl=new Blob(QCH,{type:QMR.mimeType||'video/mp4'});QV=true;QA.vidBlob=bl;var url=URL.createObjectURL(bl);var cr=g('QCR');if(cr){cr.src=url;cr.style.display='block';}var cv=g('QCV');if(cv)cv.style.display='none';var brt=g('QBRT');if(brt)brt.style.display='block';};
-  QMR.start(200);var rb=g('QRB');if(rb)rb.style.display='flex';var bs=g('QBS');if(bs)bs.style.display='block';var br=g('QBR2');if(br)br.style.display='none';
-  QRS=0;QRT=setInterval(function(){QRS++;var rl=g('QRL');if(rl)rl.textContent='REC '+QRS+'s';if(QRS>=60)qCamStop();},1000);
+  QMR.start(200);var rb=g('QRB');if(rb)rb.style.display='flex';var bs=g('QBS');if(bs)bs.style.display='block';var br=g('QBR2');if(br)br.style.display='none';var cd=g('QCOUNTDOWN');if(cd)cd.style.display='block';
+  QRS=0;QRT=setInterval(function(){
+    QRS++;
+    var rl=g('QRL');if(rl)rl.textContent='REC '+QRS+'s';
+    var remaining=60-QRS;
+    var rc=g('QRC');if(rc)rc.textContent=(remaining>0?remaining+'s restantes':'Stop !');
+    var pf=g('QPF');if(pf)pf.style.width=(QRS/60*100)+'%';
+    if(QRS>=60)qCamStop();
+  },1000);
 }
 function qCamStop(){clearInterval(QRT);if(QMR&&QMR.state!=='inactive')QMR.stop();}
 function qCamRetry(){QV=false;QA.vidBlob=null;var cr=g('QCR');if(cr){cr.style.display='none';}var brt=g('QBRT');if(brt)brt.style.display='none';qCamOn();}
@@ -1568,7 +1679,7 @@ function bQ(){
      +'<div class="lr" id="LENBLOCK"><div class="lh"><span>&#127468;&#127463;</span><span style="font-size:.9rem;font-weight:500">Anglais <span style="color:#C0392B">*</span></span></div><div class="lp">'+langEN+'</div></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===2){
-    h='<div class="qe">&#10022; \xC9tape 3/'+QT_STEPS+'</div><div class="qt">Votre <em>description</em></div><p class="qs">Pr\xE9sentez-vous sinc\xE8rement.</p>'
+    h='<div class="qe">&#10022; \xC9tape 3/'+QT_STEPS+'</div><div class="qt">Votre <em>description</em> <span style="color:var(--rd)">*</span></div><p class="qs">Pr\xE9sentez-vous sinc\xE8rement. <strong style="color:var(--rd)">Obligatoire.</strong></p>'
      +'<div class="fg"><textarea class="fa" id="QDESC" rows="5" maxlength="500" oninput="updateBioCount(this)">'+(QA.desc||'')+'</textarea><div id="BIO_COUNT" style="text-align:right;font-size:.72rem;color:var(--td);margin-top:3px">'+(QA.desc?QA.desc.length:0)+'/500</div></div>'
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===3){
@@ -1603,11 +1714,12 @@ function bQ(){
      +'<div class="qn"><button class="qb" id="QBK">&#8592; Retour</button><button class="qx" onclick="qNextStep()">Continuer &rarr;</button></div>';
   }else if(QS===7){
     h='<div class="qe">&#10022; \xC9tape 7/'+QT_STEPS+'</div><div class="qt">Votre <em>vid\xE9o</em></div><p class="qs">Publi\xE9e avec traduction FR\u2194TH apr\xE8s validation.</p>'
+     +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">'+'<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--b2);border-radius:10px"><span style="font-size:1.2rem">\uD83D\uDCCD</span><div><div style="font-size:.82rem;font-weight:600;color:var(--nv);margin-bottom:2px">Lieu lumineux</div><div style="font-size:.74rem;color:var(--tm)">Filmez pr\xE8s d\'une fen\xEAtre.</div></div></div>'+'<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--b2);border-radius:10px"><span style="font-size:1.2rem">\uD83D\uDCF7</span><div><div style="font-size:.82rem;font-weight:600;color:var(--nv);margin-bottom:2px">Regardez l\'objectif</div><div style="font-size:.74rem;color:var(--tm)">Regardez la cam\xE9ra.</div></div></div>'+'<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--b2);border-radius:10px"><span style="font-size:1.2rem">\u23F1\uFE0F</span><div><div style="font-size:.82rem;font-weight:600;color:var(--nv);margin-bottom:2px">60 secondes max</div><div style="font-size:.74rem;color:var(--tm)">Pr\xE9nom \xB7 \xC2ge \xB7 Ville \xB7 M\xE9tier \xB7 Ce que vous cherchez</div></div></div>'+'</div>'+'<details style="margin-bottom:12px;border:1px solid rgba(196,150,42,.2);border-radius:10px;overflow:hidden"><summary style="padding:10px 14px;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--g);list-style:none">&#127916; Quoi dire dans votre vid\xE9o &#9660;</summary>'+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px">'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#128075;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Pr\xE9sentez-vous</div><div style="font-size:.68rem;color:var(--tm)">Pr\xE9nom, \xE2ge, ville</div></div>'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#128188;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Votre m\xE9tier</div><div style="font-size:.68rem;color:var(--tm)">Ce que vous faites</div></div>'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#10084;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Vos passions</div><div style="font-size:.68rem;color:var(--tm)">Loisirs, sport, voyages</div></div>'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#128106;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Votre famille</div><div style="font-size:.68rem;color:var(--tm)">Valeurs essentielles</div></div>'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#128145;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Ce que vous cherchez</div><div style="font-size:.68rem;color:var(--tm)">Quel type de relation ?</div></div>'+'<div style="background:var(--b2);border-radius:8px;padding:10px"><div style="font-size:1.1rem">&#128483;</div><div style="font-size:.78rem;font-weight:600;color:var(--nv)">Un mot en tha\xEF</div><div style="font-size:.68rem;color:var(--tm)">\xC7a fait sourire !</div></div>'+'</div>'+'<div style="padding:8px 12px 10px;font-size:.7rem;color:var(--td);border-top:1px solid var(--b2)">\u2705 Autoris\xE9 : passions, famille &nbsp; \u274C Interdit : t\xE9l\xE9phone, liens</div>'+'</details>'
      +'<div style="width:100%;max-width:280px;margin:0 auto 10px;aspect-ratio:9/16;max-height:340px;background:var(--nv);border-radius:12px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center" id="QCA"><div class="cp" id="QCP" style="color:rgba(255,255,255,.4);text-align:center;padding:13px;line-height:1.58">Appuyez sur "Activer la cam\xE9ra"</div><video id="QCV" style="display:none;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)" muted playsinline autoplay></video><video id="QCR" style="display:none;width:100%;height:100%;object-fit:cover" controls></video><div class="rb" id="QRB" style="display:none"><div class="rd2"></div><span id="QRL">REC 0s</span></div><div style="color:var(--rd);font-size:.73rem;text-align:center;padding:12px;display:none" id="QCE"></div></div>'
      +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'
      +'<button id="QBA" class="qx qf">&#128247; Activer la cam\xE9ra</button>'
      +'<button id="QBR2" class="qx qf" style="display:none;background:linear-gradient(135deg,var(--rd),#E74C3C)">&#9210;&#65039; D\xE9marrer</button>'
-     +'<button id="QBS" style="display:none;padding:11px;border-radius:10px;border:1.5px solid var(--rd);background:transparent;color:var(--rd);font-family:var(--sans);font-size:.82rem;font-weight:600;cursor:pointer">&#9209;&#65039; Arr\xEAter</button>'
+     +'<div id="QCOUNTDOWN" style="display:none;margin-bottom:6px">'+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+'<span style="font-size:.75rem;color:var(--rd);font-weight:600" id="QRL2">REC</span>'+'<span style="font-size:.82rem;font-weight:700;color:var(--nv)" id="QRC">60s restantes</span>'+'</div>'+'<div style="height:4px;background:rgba(26,39,68,.1);border-radius:2px;overflow:hidden">'+'<div id="QPF" style="height:100%;background:var(--rd);width:0%;transition:width 1s linear;border-radius:2px"></div>'+'</div></div>'+'<button id="QBS" style="display:none;padding:11px;border-radius:10px;border:1.5px solid var(--rd);background:transparent;color:var(--rd);font-family:var(--sans);font-size:.82rem;font-weight:600;cursor:pointer">&#9209;&#65039; Arr\xEAter</button>'
      +'<button id="QBRT" style="display:none;width:100%;padding:14px;border-radius:12px;border:none;background:var(--nv);color:#fff;font-size:1rem;font-weight:700;cursor:pointer">\u2190 Recommencer</button>'
      +'</div>'
      +'<div class="uz" id="QUZ"><div style="font-size:1.7rem;margin-bottom:5px">&#128228;</div><div style="font-size:.8rem;font-weight:500;color:var(--nv)">Choisir une vid\xE9o</div><div style="font-size:.68rem;color:var(--td)">MP4, MOV \xB7 Max 100MB</div><input type="file" id="QUF" accept="video/*" style="display:none"></div>'
@@ -1632,7 +1744,8 @@ function bQ(){
      +'<div><span style="color:var(--td);font-size:.7rem">Anglais</span><div>'+(QA.len||'—')+'</div></div>'
      +'<div><span style="color:var(--td);font-size:.7rem">Recherche</span><div>'+(lookMap[QA.looking]||QA.looking||'—')+'</div></div>'
      +'<div style="grid-column:span 2"><span style="color:var(--td);font-size:.7rem">Pr\xE9sentation</span><div style="font-size:.8rem;color:var(--tm)">'+(QA.desc?QA.desc.substring(0,80)+'...':'—')+'</div></div>'
-     +(QV?'<div style="grid-column:span 2"><span style="color:var(--gn);font-weight:600">\u2705 Vid\xE9o pr\xEAte</span></div>':'<div style="grid-column:span 2"><span style="color:var(--td)">&#128247; Pas de vid\xE9o (optionnel)</span></div>')
+     +'<div style="grid-column:span 2"><span style="color:var(--td);font-size:.7rem">Photos</span><div style="font-size:.8rem;color:'+(Array.isArray(QA.photos)&&QA.photos.filter(Boolean).length>0?'var(--gn)':'var(--td)')+'">'+(Array.isArray(QA.photos)&&QA.photos.filter(Boolean).length>0?'\u2705 '+QA.photos.filter(Boolean).length+' photo(s) ajout\xE9e(s)':'Aucune photo (optionnel)')+'</div></div>'
+     +(QV?'<div style="grid-column:span 2"><span style="color:var(--gn);font-weight:600">\u2705 Vid\xE9o pr\xEAte</span><span style="color:var(--td);font-size:.72rem;margin-left:8px">(moins de 60s)</span></div>':'<div style="grid-column:span 2"><span style="color:var(--td)">&#128247; Pas de vid\xE9o (optionnel)</span></div>')
      +'</div></div>'
      +'<div class="fg"><label class="fl">Email <span style="color:#C0392B">*</span></label><input class="fi" id="QE" type="email" placeholder="votre@email.com" value="'+(QA.email||'')+'"></div>'
      +'<div class="fg"><label class="fl">WhatsApp (optionnel)</label><input class="fi" id="QWH" type="tel" placeholder="+33 6 xx xx xx xx" value="'+(QA.whats||'')+'"></div>'
@@ -1664,11 +1777,52 @@ function setLang(lang){
   toast(lang==="th"?"&#127481;&#127469; ภาษาไทย":"&#127467;&#127479; Fran\xE7ais");
 }
 
+// ── TRADUCTION AUTOMATIQUE VIDÉO ──
+function autoTranslateProfile(p){
+  if(!p||!p.video)return;
+  var vidId='vid_'+p.id.replace(/[^a-z0-9]/gi,'_');
+  var isThP=(genderView==='femme'||p.gender==='femme');
+  var preStored=isThP?(p.bioFr):(p.bioTh);
+  if(preStored){showTranslation(vidId,preStored,null,isThP);return;}
+  callTranscribeEdge(p.video,vidId,isThP);
+}
+function showTranslation(vidId,translation,transcription,isThP){
+  var resDiv=g('tr_'+vidId),txtDiv=g('tr_txt_'+vidId),loader=g('tr_loading_'+vidId);
+  if(!resDiv||!txtDiv)return;
+  var tradLabel=isThP?'&#127467;&#127479; Traduction fran\xE7aise':'&#127481;&#127469; Traduction tha\xEFe';
+  var origLabel=isThP?'&#127481;&#127469; Original tha\xEF :':'&#127467;&#127479; Original fran\xE7ais :';
+  txtDiv.innerHTML=''
+    +'<div style="font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:var(--g);font-weight:600;margin-bottom:8px">'+tradLabel+'</div>'
+    +'<p style="margin:0;font-size:.9rem;color:var(--nv);line-height:1.78">'+translation+'</p>'
+    +(transcription?'<p style="color:var(--td);font-size:.75rem;margin:10px 0 0;font-style:italic;border-top:1px solid rgba(0,0,0,.07);padding-top:8px">'+origLabel+' '+transcription+'</p>':'');
+  resDiv.style.display='block';
+  if(loader)loader.style.display='none';
+}
+function callTranscribeEdge(videoUrl,vidId,isThP){
+  var loader=g('tr_loading_'+vidId);
+  if(loader)loader.style.display='flex';
+  fetch('https://sbglyelgqceydofgllop.supabase.co/functions/v1/transcribe-video',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNiZ2x5ZWxncWNleWRvZmdsbG9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzI5NzgsImV4cCI6MjA5NjE0ODk3OH0.DWWEdXOdVQkVQPxZSq_TWdjADcG_lujugVZuziM_I2c'},
+    body:JSON.stringify({videoUrl:videoUrl,targetLang:isThP?'fran\xE7ais':'tha\xEF',sourceLang:isThP?'th':'fr'})
+  })
+  .then(function(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){throw new Error('R\xE9ponse invalide');}});})
+  .then(function(d){
+    if(d.error){if(loader)loader.style.display='none';console.warn('Traduction:',d.error);}
+    else if(d.translation){showTranslation(vidId,d.translation,d.transcription,isThP);}
+    else{if(loader)loader.style.display='none';}
+  })
+  .catch(function(){if(loader)loader.style.display='none';});
+}
+
 // INIT
 document.querySelectorAll(".pg").forEach(function(p){p.style.display=p.id==="pg-h"?"flex":"none";});
 if(window.innerWidth>=769){document.body.style.cssText="overflow:auto;position:static;height:auto";var pgh=g("pg-h");if(pgh){pgh.style.flexDirection="column";pgh.style.minHeight="100vh";pgh.style.position="static";}}
 updDsl("age");updDsl("h");updDsl("w");
 renderGrid("all");renderMsgList("unread");
+// Recharger profils depuis Supabase toutes les 30s (sync avec admin)
+setInterval(function(){loadApprovedProfiles(genderView);},30000);
+
 </script>
 </body>
 </html>
